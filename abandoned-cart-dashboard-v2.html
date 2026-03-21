@@ -869,46 +869,42 @@ async function fetchCarts() {
   showLoading(true);
   hideError();
 
-  const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-  const url = `${proxyUrl}/api/shopify?path=checkouts.json%3Fstatus%3Dopen%26limit%3D50%26created_at_min%3D${encodeURIComponent(since)}`;
+  const since = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
 
   try {
-    const res = await fetch(url, {
-      headers: {
-        'x-shopify-store': storeUrl,
-        'x-shopify-token': apiToken,
-        'Content-Type': 'application/json',
-      }
+    const ordersUrl = `${proxyUrl}/api/shopify?path=orders.json%3Fstatus%3Dany%26limit%3D250%26created_at_min%3D${encodeURIComponent(since)}`;
+    const res = await fetch(ordersUrl, {
+      headers: { 'x-shopify-store': storeUrl, 'x-shopify-token': apiToken }
     });
+    const data = await res.json();
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      const msg = err.errors || `HTTP ${res.status}: ${res.statusText}`;
+      const msg = data.errors || `HTTP ${res.status}`;
       showError(`Shopify API error: ${typeof msg === 'object' ? JSON.stringify(msg) : msg}`);
       showLoading(false);
       return;
     }
 
-    const data = await res.json();
-    carts = (data.checkouts || []).map(c => ({
-      id: String(c.id),
-      customer: c.email
-        ? (c.billing_address?.name || c.shipping_address?.name || c.email)
-        : (c.billing_address?.name || 'Guest'),
-      phone: c.billing_address?.phone || c.shipping_address?.phone || '',
-      email: c.email || '',
-      items: (c.line_items || []).map(li => ({ title: li.title, qty: li.quantity })),
-      value: parseFloat(c.total_price || 0),
-      currency: c.currency || 'GBP',
-      createdAt: new Date(c.created_at),
+    // Abandoned = pending payment, not yet fulfilled
+    carts = (data.orders || []).filter(o =>
+      o.financial_status === 'pending' && !o.fulfillment_status
+    ).map(o => ({
+      id: String(o.id),
+      customer: (o.billing_address?.name || (o.customer ? o.customer.first_name + ' ' + o.customer.last_name : '') || o.email || 'Guest').trim(),
+      phone: o.billing_address?.phone || o.customer?.phone || '',
+      email: o.email || '',
+      items: (o.line_items || []).map(li => ({ title: li.title, qty: li.quantity })),
+      value: parseFloat(o.total_price || 0),
+      currency: o.currency || 'GBP',
+      createdAt: new Date(o.created_at),
     })).filter(c => c.items.length > 0);
 
-    addLog(`Fetched ${carts.length} abandoned cart${carts.length !== 1 ? 's' : ''}`, 'info');
+    addLog(`Fetched ${carts.length} abandoned order${carts.length !== 1 ? 's' : ''} from last 48h`, 'info');
     renderStats();
     renderTable();
     showLoading(false);
   } catch (e) {
-    showError(`Connection failed: ${e.message}. Check your store URL, token and that your app has read_checkouts scope.`);
+    showError(`Connection failed: ${e.message}. Check your store URL and token.`);
     showLoading(false);
   }
 }
