@@ -1133,12 +1133,13 @@ function renderTable() {
 function buildWALink(cart) {
   const fmt = new Intl.NumberFormat('en-GB', { style: 'currency', currency: cart.currency }).format(cart.value);
   const itemsList = cart.items.map(i => `• ${i.title} (×${i.qty})`).join('\n');
+  const cartUrl = cart.checkoutUrl || `https://${storeUrl}/checkouts/${cart.id.replace(/[^a-zA-Z0-9]/g,'')}`;
   const msg =
     `Hi ${cart.customer.split(' ')[0]} 👋\n\n` +
     `You left something in your cart — just wanted to check in!\n\n` +
     `🛒 *Your basket (${fmt}):*\n${itemsList}\n\n` +
-    `Is there anything I can help you with? Happy to answer any questions, arrange a return, or help with sizing — just let me know 😊\n\n` +
-    `Your cart is saved and ready whenever you are!`;
+    `Complete your order here 👇\n${cartUrl}\n\n` +
+    `Is there anything I can help you with? Happy to answer any questions, arrange a return, or help with sizing — just let me know 😊`;
 
   const phone = (cart.phone || '').replace(/\D/g, '');
   return phone
@@ -1341,8 +1342,9 @@ async function sendEmailRecovery(cartId) {
   const firstName = cart.customer.split(' ')[0];
   const itemsList = cart.items.map(i => `• ${i.title} (×${i.qty})`).join('\n');
 
+  const checkoutUrl = cart.checkoutUrl || `https://${storeUrl}/checkouts/${cart.id.replace(/[^a-zA-Z0-9]/g,'')}`;
   const subject = `${firstName}, you left something behind 🛍️`;
-  const body = `Hi ${firstName},\n\nWe noticed you left some items in your cart and wanted to check in!\n\n🛒 Your basket (${fmt}):\n${itemsList}\n\nIs there anything I can help you with? Happy to answer questions about sizing, ingredients, or delivery — just reply to this email 😊\n\nYour cart is saved and ready whenever you are!\n\nWarm regards,\nCC Hair & Beauty`;
+  const body = `Hi ${firstName},\n\nWe noticed you left some items in your cart and wanted to check in!\n\n🛒 Your basket (${fmt}):\n${itemsList}\n\nYour cart is saved — complete your order here:\n${checkoutUrl}\n\nIs there anything I can help you with? Happy to answer questions about sizing, ingredients, or delivery — just reply to this email 😊\n\nWarm regards,\nCC Hair & Beauty`;
 
   if (gmailConnected && gmailToken) {
     // Try Gmail API auto-send
