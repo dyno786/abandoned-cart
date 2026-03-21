@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Abandoned Cart Recovery</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0f11;
+    --surface: #16181c;
+    --surface2: #1e2027;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #f0f0f0;
+    --muted: #8a8f9a;
+    --accent: #25d366;
+    --accent2: #1da851;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --blue: #3b82f6;
+    --pill-bg: rgba(37,211,102,0.1);
+    --pill-txt: #25d366;
+    --font: 'DM Sans', sans-serif;
+    --mono: 'DM Mono', monospace;
+    --rad: 10px;
+    --rad-lg: 16px;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* Setup screen */
+  #setup-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+
+  .setup-card {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--rad-lg);
+    padding: 2.5rem;
+    max-width: 480px;
+    width: 100%;
+  }
+
+  .setup-card h1 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    letter-spacing: -0.3px;
+  }
+
+  .setup-card p {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+  }
+
+  .field { margin-bottom: 1.25rem; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 6px;
+  }
+
+  .field input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--rad);
+    padding: 10px 14px;
+    font-size: 14px;
+    font-family: var(--mono);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .field input:focus { border-color: var(--accent); }
+
+  .field input::placeholder { color: var(--muted); opacity: 0.5; }
+
+  .hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+
+  .btn-primary {
+    width: 100%;
+    background: var(--accent);
+    color: #0a1f0e;
+    border: none;
+    border-radius: var(--rad);
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    margin-top: 0.5rem;
+  }
+
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-primary:active { transform: scale(0.98); }
+
+  .demo-link {
+    text-align: center;
+    margin-top: 1rem;
+  }
+
+  .demo-link a {
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .demo-link a:hover { color: var(--text); }
+
+  /* Main dashboard */
+  #dashboard { display: none; }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-icon svg { width: 18px; height: 18px; fill: #0a1f0e; }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .store-badge {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+  }
+
+  .auto-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .toggle-wrap {
+    position: relative;
+    width: 40px;
+    height: 22px;
+  }
+
+  .toggle-wrap input { opacity: 0; width: 0; height: 0; }
+
+  .slider-track {
+    position: absolute;
+    inset: 0;
+    background: var(--border2);
+    border-radius: 11px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .slider-track::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    top: 3px;
+    left: 3px;
+    transition: transform 0.2s;
+  }
+
+  .toggle-wrap input:checked + .slider-track { background: var(--accent); }
+  .toggle-wrap input:checked + .slider-track::before { transform: translateX(18px); }
+
+  .btn-refresh {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    border-radius: var(--rad);
+    padding: 7px 14px;
+    font-size: 13px;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: border-color 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-refresh:hover { border-color: var(--accent); }
+
+  .btn-disconnect {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 12px;
+    font-family: var(--font);
+    cursor: pointer;
+    padding: 6px 8px;
+    border-radius: 6px;
+    transition: color 0.15s;
+  }
+
+  .btn-disconnect:hover { color: var(--danger); }
+
+  .main { padding: 24px 28px; }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--rad);
+    padding: 16px;
+  }
+
+  .stat-card .s-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .stat-card .s-val {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    line-height: 1;
+  }
+
+  .s-val.green { color: var(--accent); }
+  .s-val.warn { color: var(--warn); }
+  .s-val.blue { color: var(--blue); }
+
+  /* Filter/search bar */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .search-wrap {
+    flex: 1;
+    min-width: 200px;
+    position: relative;
+  }
+
+  .search-wrap input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--rad);
+    padding: 8px 12px 8px 34px;
+    font-size: 13px;
+    font-family: var(--font);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .search-wrap input:focus { border-color: var(--accent); }
+  .search-wrap input::placeholder { color: var(--muted); opacity: 0.5; }
+
+  .search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.4;
+  }
+
+  .sort-select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--rad);
+    padding: 8px 12px;
+    font-size: 13px;
+    font-family: var(--font);
+    color: var(--text);
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    padding-right: 28px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238a8f9a'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+
+  .btn-send-all {
+    background: var(--accent);
+    color: #0a1f0e;
+    border: none;
+    border-radius: var(--rad);
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-send-all:hover { background: var(--accent2); }
+
+  /* Cart table */
+  .cart-table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--rad-lg);
+    overflow: hidden;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead th {
+    background: var(--surface2);
+    padding: 11px 16px;
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--muted);
+    font-weight: 500;
+    border-bottom: 1px solid var(--border);
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.12s;
+  }
+
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+
+  td { padding: 13px 16px; vertical-align: middle; }
+
+  .customer-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .cust-name { font-weight: 500; font-size: 13px; }
+  .cust-phone { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+
+  .items-cell { max-width: 260px; }
+
+  .item-pill {
+    display: inline-block;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 11px;
+    margin: 2px 2px 2px 0;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .item-pill span {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .value-cell {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--accent);
+  }
+
+  .age-cell {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .age-old { color: var(--warn); }
+  .age-very-old { color: var(--danger); }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+  }
+
+  .sent-dot { background: var(--accent); }
+  .unsent-dot { background: var(--muted); }
+
+  .action-cell { white-space: nowrap; }
+
+  .btn-wa {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--pill-bg);
+    color: var(--accent);
+    border: 1px solid rgba(37,211,102,0.2);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: var(--font);
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .btn-wa:hover { background: rgba(37,211,102,0.18); border-color: rgba(37,211,102,0.4); }
+
+  .btn-wa svg { width: 14px; height: 14px; fill: currentColor; }
+
+  .sent-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(37,211,102,0.07);
+    border-radius: 6px;
+    padding: 4px 8px;
+  }
+
+  /* Auto-message log */
+  .auto-log {
+    margin-top: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--rad-lg);
+    overflow: hidden;
+  }
+
+  .log-header {
+    background: var(--surface2);
+    padding: 11px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .log-header h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .auto-running {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--accent);
+  }
+
+  .pulse-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 1.6s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  .log-entries { padding: 8px 0; max-height: 180px; overflow-y: auto; }
+
+  .log-entry {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 16px;
+    font-size: 12px;
+  }
+
+  .log-time {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    min-width: 58px;
+  }
+
+  .log-msg { color: var(--text); }
+  .log-msg.success { color: var(--accent); }
+  .log-msg.info { color: var(--blue); }
+
+  /* Next run timer */
+  .next-run-bar {
+    padding: 10px 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .countdown {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* Loading / empty */
+  .loading-state, .empty-state {
+    padding: 48px;
+    text-align: center;
+    color: var(--muted);
+  }
+
+  .spinner {
+    width: 28px;
+    height: 28px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto 12px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Error banner */
+  .error-banner {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.25);
+    border-radius: var(--rad);
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #f87171;
+    margin-bottom: 16px;
+    display: none;
+  }
+
+  /* Notification toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--rad);
+    padding: 12px 18px;
+    font-size: 13px;
+    color: var(--text);
+    z-index: 100;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: transform 0.25s, opacity 0.25s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 320px;
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<!-- Setup screen -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <h1>Abandoned Cart Recovery</h1>
+    <p>Connect your Shopify store to view abandoned checkouts, send WhatsApp recovery messages, and automate follow-ups every 2 hours.</p>
+
+    <div class="field">
+      <label>Vercel Proxy URL</label>
+      <input type="text" id="proxy-url" placeholder="https://your-proxy.vercel.app">
+      <div class="hint">Your deployed Vercel proxy URL (e.g. https://shopify-proxy-abc123.vercel.app)</div>
+    </div>
+
+    <div class="field">
+      <label>Shopify Store URL</label>
+      <input type="text" id="shop-url" placeholder="yourstore.myshopify.com">
+      <div class="hint">Your Shopify store domain (without https://)</div>
+    </div>
+
+    <div class="field">
+      <label>Admin API Access Token</label>
+      <input type="password" id="api-token" placeholder="shpat_xxxxxxxxxxxxxxxxxxxx">
+      <div class="hint">
+        Admin → Apps → Develop apps → Create app → Configure Admin API scopes → enable <strong>read_checkouts</strong>, <strong>read_customers</strong> → Install → copy the token
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="connectStore()">Connect Store</button>
+
+    <div class="demo-link">
+      <a onclick="loadDemo()">No store yet? Load with demo data</a>
+    </div>
+  </div>
+</div>
+
+<!-- Main dashboard -->
+<div id="dashboard">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.004 0C5.374 0 0 5.373 0 12c0 2.117.551 4.103 1.515 5.831L.057 23.886l6.2-1.626A11.953 11.953 0 0 0 12.004 24C18.63 24 24 18.627 24 12S18.63 0 12.004 0zm0 21.818a9.813 9.813 0 0 1-5.003-1.368l-.359-.213-3.681.965.982-3.588-.234-.369a9.816 9.816 0 0 1-1.504-5.245c0-5.42 4.41-9.83 9.83-9.83 5.421 0 9.832 4.41 9.832 9.83 0 5.421-4.411 9.818-9.863 9.818z"/></svg>
+      </div>
+      Cart Recovery
+    </div>
+    <div class="header-right">
+      <span class="store-badge" id="store-badge">store.myshopify.com</span>
+      <label class="auto-toggle">
+        <span id="auto-label">Auto-send off</span>
+        <div class="toggle-wrap">
+          <input type="checkbox" id="auto-toggle-cb" onchange="toggleAuto(this)">
+          <span class="slider-track"></span>
+        </div>
+      </label>
+      <button class="btn-refresh" onclick="fetchCarts()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Refresh
+      </button>
+      <button class="btn-disconnect" onclick="disconnect()">Disconnect</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="s-label">Abandoned carts</div>
+        <div class="s-val warn" id="stat-total">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Total value at risk</div>
+        <div class="s-val green" id="stat-value">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Messages sent today</div>
+        <div class="s-val blue" id="stat-sent">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Avg cart value</div>
+        <div class="s-val" id="stat-avg">—</div>
+      </div>
+    </div>
+
+    <!-- Error banner -->
+    <div class="error-banner" id="error-banner"></div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="search-wrap">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8a8f9a" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Search customers…" id="search-input" oninput="renderTable()">
+      </div>
+      <select class="sort-select" id="sort-select" onchange="renderTable()">
+        <option value="value-desc">Highest value first</option>
+        <option value="value-asc">Lowest value first</option>
+        <option value="age-desc">Oldest first</option>
+        <option value="age-asc">Newest first</option>
+      </select>
+      <button class="btn-send-all" onclick="sendAllUnsent()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"/><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm6.27 16.873c-.264.742-1.545 1.414-2.138 1.503-.547.082-1.237.117-1.997-.126-.46-.148-1.049-.346-1.807-.672-3.18-1.37-5.258-4.556-5.417-4.768-.158-.213-1.287-1.712-1.287-3.267s.814-2.323 1.102-2.639c.288-.316.629-.395.839-.395.21 0 .42.002.603.011.193.01.452-.074.707.54.263.635.893 2.186.971 2.343.079.157.131.34.026.553-.105.213-.158.344-.315.528-.158.184-.332.41-.474.55-.158.157-.322.328-.138.643.183.316.815 1.346 1.748 2.18 1.201 1.073 2.213 1.406 2.529 1.563.316.157.501.131.685-.079.184-.21.788-.922 1.001-1.24.213-.316.421-.264.709-.158.288.105 1.823.86 2.136 1.017.316.158.527.235.605.367.079.131.079.762-.185 1.504z"/></svg>
+        Send all via WhatsApp
+      </button>
+    </div>
+
+    <!-- Table -->
+    <div class="cart-table-wrap">
+      <div id="table-loading" class="loading-state">
+        <div class="spinner"></div>
+        <div>Fetching abandoned checkouts…</div>
+      </div>
+      <div id="table-empty" class="empty-state" style="display:none;">
+        No abandoned carts found in the last 24 hours.
+      </div>
+      <table id="cart-table" style="display:none;">
+        <thead>
+          <tr>
+            <th>Customer</th>
+            <th>Items</th>
+            <th>Value</th>
+            <th>Abandoned</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="cart-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- Auto-send log -->
+    <div class="auto-log">
+      <div class="log-header">
+        <h3>Automation log</h3>
+        <div class="auto-running" id="auto-running" style="display:none;">
+          <div class="pulse-dot"></div>
+          Running every 2 hours
+        </div>
+      </div>
+      <div class="log-entries" id="log-entries">
+        <div class="log-entry">
+          <span class="log-time">—</span>
+          <span class="log-msg info">Enable auto-send to start the 2-hour cycle</span>
+        </div>
+      </div>
+      <div class="next-run-bar" id="next-run-bar" style="display:none;">
+        <span>Next automated check</span>
+        <span class="countdown" id="countdown">—</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <div class="toast-dot" id="toast-dot"></div>
+  <span id="toast-msg"></span>
+</div>
+
+<script>
+let storeUrl = '', apiToken = '', proxyUrl = '', isDemo = false;
+let carts = [], sentIds = new Set(), autoInterval = null, countdownInterval = null, nextRunAt = null;
+let messagesSentToday = 0;
+
+const AVATARCOLORS = [
+  ['rgba(37,211,102,0.15)','#25d366'],
+  ['rgba(59,130,246,0.15)','#60a5fa'],
+  ['rgba(245,158,11,0.15)','#f59e0b'],
+  ['rgba(168,85,247,0.15)','#c084fc'],
+  ['rgba(239,68,68,0.15)','#f87171'],
+  ['rgba(20,184,166,0.15)','#2dd4bf'],
+];
+
+const DEMO_CARTS = [
+  { id:'C001', customer:'Sarah Mitchell', phone:'+447890123456', email:'sarah@example.com', items:[{title:'Linen Wide-Leg Trousers',qty:1},{title:'Silk Cami',qty:2}], value:127.50, currency:'GBP', createdAt: new Date(Date.now()-3*3600000) },
+  { id:'C002', customer:'James Okafor', phone:'+447712345678', email:'james@example.com', items:[{title:'Running Trainers',qty:1}], value:89.99, currency:'GBP', createdAt: new Date(Date.now()-5*3600000) },
+  { id:'C003', customer:'Priya Sharma', phone:'+447634567890', email:'priya@example.com', items:[{title:'Ceramic Pour-Over Kit',qty:1},{title:'Specialty Coffee 250g',qty:3}], value:64.00, currency:'GBP', createdAt: new Date(Date.now()-1.5*3600000) },
+  { id:'C004', customer:'Tom Whitfield', phone:'+447556789012', email:'tom@example.com', items:[{title:'Merino Crew Neck',qty:2},{title:'Slim Chinos',qty:1},{title:'Leather Belt',qty:1}], value:215.00, currency:'GBP', createdAt: new Date(Date.now()-8*3600000) },
+  { id:'C005', customer:'Amelia Chen', phone:'+447998765432', email:'amelia@example.com', items:[{title:'Yoga Mat Premium',qty:1}], value:58.00, currency:'GBP', createdAt: new Date(Date.now()-0.7*3600000) },
+];
+
+function connectStore() {
+  const proxy = document.getElementById('proxy-url').value.trim();
+  const url = document.getElementById('shop-url').value.trim();
+  const token = document.getElementById('api-token').value.trim();
+  if (!proxy || !url || !token) { showToast('Please fill in all three fields', '#ef4444'); return; }
+  proxyUrl = proxy.replace(/\/$/, '');
+  storeUrl = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  apiToken = token;
+  isDemo = false;
+  showDashboard();
+  fetchCarts();
+}
+
+function loadDemo() {
+  storeUrl = 'demo.myshopify.com';
+  apiToken = 'demo';
+  isDemo = true;
+  showDashboard();
+  populateDemoCarts();
+}
+
+function showDashboard() {
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  document.getElementById('store-badge').textContent = storeUrl;
+}
+
+function disconnect() {
+  if (autoInterval) clearInterval(autoInterval);
+  if (countdownInterval) clearInterval(countdownInterval);
+  carts = []; sentIds.clear();
+  document.getElementById('setup-screen').style.display = 'flex';
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('auto-toggle-cb').checked = false;
+}
+
+async function fetchCarts() {
+  if (isDemo) { populateDemoCarts(); return; }
+  showLoading(true);
+  hideError();
+
+  const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  const url = `${proxyUrl}/api/shopify?path=checkouts.json%3Fstatus%3Dopen%26limit%3D50%26created_at_min%3D${encodeURIComponent(since)}`;
+
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'x-shopify-store': storeUrl,
+        'x-shopify-token': apiToken,
+        'Content-Type': 'application/json',
+      }
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const msg = err.errors || `HTTP ${res.status}: ${res.statusText}`;
+      showError(`Shopify API error: ${typeof msg === 'object' ? JSON.stringify(msg) : msg}`);
+      showLoading(false);
+      return;
+    }
+
+    const data = await res.json();
+    carts = (data.checkouts || []).map(c => ({
+      id: String(c.id),
+      customer: c.email
+        ? (c.billing_address?.name || c.shipping_address?.name || c.email)
+        : (c.billing_address?.name || 'Guest'),
+      phone: c.billing_address?.phone || c.shipping_address?.phone || '',
+      email: c.email || '',
+      items: (c.line_items || []).map(li => ({ title: li.title, qty: li.quantity })),
+      value: parseFloat(c.total_price || 0),
+      currency: c.currency || 'GBP',
+      createdAt: new Date(c.created_at),
+    })).filter(c => c.items.length > 0);
+
+    addLog(`Fetched ${carts.length} abandoned cart${carts.length !== 1 ? 's' : ''}`, 'info');
+    renderStats();
+    renderTable();
+    showLoading(false);
+  } catch (e) {
+    showError(`Connection failed: ${e.message}. Check your store URL, token and that your app has read_checkouts scope.`);
+    showLoading(false);
+  }
+}
+
+function populateDemoCarts() {
+  carts = DEMO_CARTS.map(c => ({ ...c, createdAt: new Date(c.createdAt) }));
+  showLoading(false);
+  renderStats();
+  renderTable();
+  addLog('Loaded demo data — 5 abandoned carts', 'info');
+}
+
+function renderStats() {
+  document.getElementById('stat-total').textContent = carts.length;
+  const total = carts.reduce((s, c) => s + c.value, 0);
+  const avg = carts.length ? total / carts.length : 0;
+  const currency = carts[0]?.currency || 'GBP';
+  const fmt = (v) => new Intl.NumberFormat('en-GB', { style: 'currency', currency }).format(v);
+  document.getElementById('stat-value').textContent = fmt(total);
+  document.getElementById('stat-avg').textContent = fmt(avg);
+  document.getElementById('stat-sent').textContent = messagesSentToday;
+}
+
+function renderTable() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const sort = document.getElementById('sort-select').value;
+
+  let filtered = carts.filter(c =>
+    c.customer.toLowerCase().includes(q) ||
+    c.phone.includes(q) ||
+    c.items.some(i => i.title.toLowerCase().includes(q))
+  );
+
+  filtered.sort((a, b) => {
+    if (sort === 'value-desc') return b.value - a.value;
+    if (sort === 'value-asc') return a.value - b.value;
+    if (sort === 'age-desc') return a.createdAt - b.createdAt;
+    if (sort === 'age-asc') return b.createdAt - a.createdAt;
+    return 0;
+  });
+
+  const tbody = document.getElementById('cart-tbody');
+  if (filtered.length === 0) {
+    document.getElementById('cart-table').style.display = 'none';
+    document.getElementById('table-empty').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('cart-table').style.display = 'table';
+  document.getElementById('table-empty').style.display = 'none';
+
+  tbody.innerHTML = filtered.map(cart => {
+    const initials = cart.customer.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    const colorIdx = cart.id.charCodeAt(cart.id.length - 1) % AVATARCOLORS.length;
+    const [bgColor, txtColor] = AVATARCOLORS[colorIdx];
+    const fmt = new Intl.NumberFormat('en-GB', { style: 'currency', currency: cart.currency }).format(cart.value);
+    const ageMs = Date.now() - cart.createdAt.getTime();
+    const ageH = ageMs / 3600000;
+    const ageStr = ageH < 1 ? `${Math.round(ageMs / 60000)}m ago` : `${ageH.toFixed(1)}h ago`;
+    const ageClass = ageH > 6 ? 'age-very-old' : ageH > 3 ? 'age-old' : '';
+    const isSent = sentIds.has(cart.id);
+    const waLink = buildWALink(cart);
+
+    const itemPills = cart.items.map(it =>
+      `<span class="item-pill"><span>${it.title}</span> ×${it.qty}</span>`
+    ).join('');
+
+    return `<tr>
+      <td>
+        <div class="customer-cell">
+          <div class="avatar" style="background:${bgColor};color:${txtColor}">${initials}</div>
+          <div>
+            <div class="cust-name">${esc(cart.customer)}</div>
+            <div class="cust-phone">${esc(cart.phone || cart.email || 'No contact')}</div>
+          </div>
+        </div>
+      </td>
+      <td class="items-cell">${itemPills}</td>
+      <td class="value-cell">${fmt}</td>
+      <td class="age-cell ${ageClass}">${ageStr}</td>
+      <td>${isSent
+        ? `<span class="sent-tag"><span class="status-dot sent-dot"></span>Sent</span>`
+        : `<span style="font-size:12px;color:var(--muted);"><span class="status-dot unsent-dot"></span>Not sent</span>`
+      }</td>
+      <td class="action-cell">
+        <a href="${waLink}" target="_blank" class="btn-wa" onclick="markSent('${cart.id}')">
+          <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.004 0C5.374 0 0 5.373 0 12c0 2.117.551 4.103 1.515 5.831L.057 23.886l6.2-1.626A11.953 11.953 0 0 0 12.004 24C18.63 24 24 18.627 24 12S18.63 0 12.004 0zm0 21.818a9.813 9.813 0 0 1-5.003-1.368l-.359-.213-3.681.965.982-3.588-.234-.369a9.816 9.816 0 0 1-1.504-5.245c0-5.42 4.41-9.83 9.83-9.83 5.421 0 9.832 4.41 9.832 9.83 0 5.421-4.411 9.818-9.863 9.818z"/></svg>
+          WhatsApp
+        </a>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function buildWALink(cart) {
+  const fmt = new Intl.NumberFormat('en-GB', { style: 'currency', currency: cart.currency }).format(cart.value);
+  const itemsList = cart.items.map(i => `• ${i.title} (×${i.qty})`).join('\n');
+  const msg =
+    `Hi ${cart.customer.split(' ')[0]} 👋\n\n` +
+    `You left something in your cart — just wanted to check in!\n\n` +
+    `🛒 *Your basket (${fmt}):*\n${itemsList}\n\n` +
+    `Is there anything I can help you with? Happy to answer any questions, arrange a return, or help with sizing — just let me know 😊\n\n` +
+    `Your cart is saved and ready whenever you are!`;
+
+  const phone = (cart.phone || '').replace(/\D/g, '');
+  return phone
+    ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
+    : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+}
+
+function markSent(id) {
+  sentIds.add(id);
+  messagesSentToday++;
+  document.getElementById('stat-sent').textContent = messagesSentToday;
+  const name = carts.find(c => c.id === id)?.customer || id;
+  addLog(`Message opened for ${name}`, 'success');
+  setTimeout(renderTable, 300);
+}
+
+function sendAllUnsent() {
+  const unsent = carts.filter(c => !sentIds.has(c.id));
+  if (unsent.length === 0) { showToast('All carts already messaged today', '#f59e0b'); return; }
+  let count = 0;
+  unsent.forEach((cart, i) => {
+    setTimeout(() => {
+      const link = buildWALink(cart);
+      window.open(link, '_blank');
+      markSent(cart.id);
+      count++;
+      if (count === unsent.length) showToast(`Opened ${count} WhatsApp message${count > 1 ? 's' : ''}`, '#25d366');
+    }, i * 400);
+  });
+}
+
+function toggleAuto(cb) {
+  const label = document.getElementById('auto-label');
+  const running = document.getElementById('auto-running');
+  const nextBar = document.getElementById('next-run-bar');
+
+  if (cb.checked) {
+    label.textContent = 'Auto-send on';
+    running.style.display = 'flex';
+    nextBar.style.display = 'flex';
+    addLog('Auto-send enabled — will check every 2 hours', 'success');
+    scheduleNext();
+    autoInterval = setInterval(runAutoSend, 2 * 3600 * 1000);
+  } else {
+    label.textContent = 'Auto-send off';
+    running.style.display = 'none';
+    nextBar.style.display = 'none';
+    clearInterval(autoInterval);
+    clearInterval(countdownInterval);
+    autoInterval = null;
+    addLog('Auto-send disabled', 'info');
+  }
+}
+
+function scheduleNext() {
+  nextRunAt = Date.now() + 2 * 3600 * 1000;
+  clearInterval(countdownInterval);
+  countdownInterval = setInterval(updateCountdown, 1000);
+  updateCountdown();
+}
+
+function updateCountdown() {
+  if (!nextRunAt) return;
+  const rem = nextRunAt - Date.now();
+  if (rem <= 0) { document.getElementById('countdown').textContent = 'Running now…'; return; }
+  const h = Math.floor(rem / 3600000);
+  const m = Math.floor((rem % 3600000) / 60000);
+  const s = Math.floor((rem % 60000) / 1000);
+  document.getElementById('countdown').textContent =
+    `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+async function runAutoSend() {
+  addLog('Auto-check running — fetching latest carts…', 'info');
+  await fetchCarts();
+  const unsent = carts.filter(c => !sentIds.has(c.id));
+  if (unsent.length === 0) {
+    addLog('No new unsent carts found', 'info');
+  } else {
+    unsent.forEach((cart, i) => {
+      setTimeout(() => {
+        const link = buildWALink(cart);
+        window.open(link, '_blank');
+        markSent(cart.id);
+      }, i * 500);
+    });
+    addLog(`Auto-sent messages for ${unsent.length} cart${unsent.length > 1 ? 's' : ''}`, 'success');
+  }
+  scheduleNext();
+}
+
+function addLog(msg, type = 'info') {
+  const container = document.getElementById('log-entries');
+  const now = new Date();
+  const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `<span class="log-time">${time}</span><span class="log-msg ${type}">${esc(msg)}</span>`;
+  const placeholder = container.querySelector('.log-entry .log-time');
+  if (placeholder && placeholder.textContent === '—') container.innerHTML = '';
+  container.appendChild(entry);
+  container.scrollTop = container.scrollHeight;
+}
+
+function showLoading(v) {
+  document.getElementById('table-loading').style.display = v ? 'block' : 'none';
+  if (v) {
+    document.getElementById('cart-table').style.display = 'none';
+    document.getElementById('table-empty').style.display = 'none';
+  }
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-banner');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function hideError() {
+  document.getElementById('error-banner').style.display = 'none';
+}
+
+function showToast(msg, color = '#25d366') {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  document.getElementById('toast-dot').style.background = color;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
