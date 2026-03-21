@@ -1134,12 +1134,14 @@ function buildWALink(cart) {
   const fmt = new Intl.NumberFormat('en-GB', { style: 'currency', currency: cart.currency }).format(cart.value);
   const itemsList = cart.items.map(i => `• ${i.title} (×${i.qty})`).join('\n');
   const cartUrl = cart.checkoutUrl || `https://${storeUrl}/checkouts/${cart.id.replace(/[^a-zA-Z0-9]/g,'')}`;
+  const firstName = cart.customer.split(' ')[0];
   const msg =
-    `Hi ${cart.customer.split(' ')[0]} 👋\n\n` +
+    `Hi ${firstName}!\n\n` +
     `You left something in your cart — just wanted to check in!\n\n` +
-    `🛒 *Your basket (${fmt}):*\n${itemsList}\n\n` +
-    `Complete your order here 👇\n${cartUrl}\n\n` +
-    `Is there anything I can help you with? Happy to answer any questions, arrange a return, or help with sizing — just let me know 😊`;
+    `*Your basket (${fmt}):*\n${itemsList}\n\n` +
+    `Complete your order here:\n${cartUrl}\n\n` +
+    `Is there anything I can help you with? Happy to answer any questions or help with sizing — just let me know!\n\n` +
+    `CC Hair & Beauty`;
 
   const phone = (cart.phone || '').replace(/\D/g, '');
   return phone
