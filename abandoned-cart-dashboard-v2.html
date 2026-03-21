@@ -1244,7 +1244,7 @@ let gmailToken = null, gmailAddr = '', gmailConnected = false;
 const GMAIL_CLIENT_ID = ''; // Set via prompt
 
 function connectGmail() {
-  const clientId = localStorage.getItem('gmailClientId') || prompt('Enter your Google OAuth Client ID (from console.cloud.google.com):');
+  const clientId = '987420362296-6akentla67m6eakrlplaldu9gko79t9e.apps.googleusercontent.com';
   if (!clientId) return;
   localStorage.setItem('gmailClientId', clientId);
   const redirectUri = window.location.origin + window.location.pathname;
