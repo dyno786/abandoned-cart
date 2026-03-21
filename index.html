@@ -869,90 +869,75 @@ async function fetchCarts() {
   showLoading(true);
   hideError();
 
-  const query = `{
-    abandonedCheckouts(first: 50, sortKey: CREATED_AT, reverse: true) {
-      edges {
-        node {
-          id
-          createdAt
-          totalPriceSet { shopMoney { amount currencyCode } }
-          customer { firstName lastName phone email }
-          lineItems(first: 10) {
-            edges { node { title quantity } }
-          }
-        }
+  try {
+    // Use the correct Shopify endpoint for abandoned checkouts (covered by read_orders scope)
+    const since = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
+    const path = `checkouts.json?status=open&limit=50&created_at_min=${encodeURIComponent(since)}`;
+    let res = await fetch(`${proxyUrl}/api/shopify?path=${encodeURIComponent(path)}`, {
+      headers: { 'x-shopify-store': storeUrl, 'x-shopify-token': apiToken }
+    });
+    let data = await res.json();
+
+    if (res.ok && data.checkouts !== undefined) {
+      carts = (data.checkouts || []).map(c => ({
+        id: String(c.id),
+        customer: c.billing_address?.name || c.shipping_address?.name || c.email || 'Guest',
+        phone: c.billing_address?.phone || c.shipping_address?.phone || '',
+        email: c.email || '',
+        items: (c.line_items || []).map(li => ({ title: li.title, qty: li.quantity })),
+        value: parseFloat(c.total_price || 0),
+        currency: c.currency || 'GBP',
+        createdAt: new Date(c.created_at),
+      })).filter(c => c.items.length > 0);
+      addLog(`Fetched ${carts.length} abandoned checkout${carts.length !== 1 ? 's' : ''}`, 'info');
+    } else {
+      // Fallback: use GraphQL abandonedCheckouts
+      const query = `{ abandonedCheckouts(first: 50, sortKey: CREATED_AT, reverse: true) { edges { node { id createdAt totalPriceSet { shopMoney { amount currencyCode } } customer { firstName lastName phone email } lineItems(first: 10) { edges { node { title quantity } } } } } } }`;
+      res = await fetch(`${proxyUrl}/api/shopify?graphql=1`, {
+        method: 'POST',
+        headers: { 'x-shopify-store': storeUrl, 'x-shopify-token': apiToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query })
+      });
+      data = await res.json();
+
+      if (res.ok && data?.data?.abandonedCheckouts) {
+        const edges = data.data.abandonedCheckouts.edges || [];
+        carts = edges.map(({ node: c }) => ({
+          id: c.id,
+          customer: c.customer ? (`${c.customer.firstName || ''} ${c.customer.lastName || ''}`).trim() || c.customer.email || 'Guest' : 'Guest',
+          phone: c.customer?.phone || '',
+          email: c.customer?.email || '',
+          items: (c.lineItems?.edges || []).map(e => ({ title: e.node.title, qty: e.node.quantity })),
+          value: parseFloat(c.totalPriceSet?.shopMoney?.amount || 0),
+          currency: c.totalPriceSet?.shopMoney?.currencyCode || 'GBP',
+          createdAt: new Date(c.createdAt),
+        })).filter(c => c.items.length > 0);
+        addLog(`Fetched ${carts.length} abandoned checkout${carts.length !== 1 ? 's' : ''} (GraphQL)`, 'info');
+      } else {
+        // Final fallback: pending orders
+        const opath = `orders.json?status=any&limit=250&created_at_min=${encodeURIComponent(since)}`;
+        res = await fetch(`${proxyUrl}/api/shopify?path=${encodeURIComponent(opath)}`, {
+          headers: { 'x-shopify-store': storeUrl, 'x-shopify-token': apiToken }
+        });
+        data = await res.json();
+        carts = (data.orders || []).filter(o => o.financial_status === 'pending' && !o.fulfillment_status).map(o => ({
+          id: String(o.id),
+          customer: (o.billing_address?.name || (o.customer ? o.customer.first_name + ' ' + o.customer.last_name : '') || o.email || 'Guest').trim(),
+          phone: o.billing_address?.phone || o.customer?.phone || '',
+          email: o.email || '',
+          items: (o.line_items || []).map(li => ({ title: li.title, qty: li.quantity })),
+          value: parseFloat(o.total_price || 0),
+          currency: o.currency || 'GBP',
+          createdAt: new Date(o.created_at),
+        })).filter(c => c.items.length > 0);
+        addLog(`Fetched ${carts.length} pending order${carts.length !== 1 ? 's' : ''} (orders fallback)`, 'info');
       }
     }
-  }`;
 
-  try {
-    const res = await fetch(`${proxyUrl}/api/shopify?graphql=1`, {
-      method: 'POST',
-      headers: {
-        'x-shopify-store': storeUrl,
-        'x-shopify-token': apiToken,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ query })
-    });
-
-    const data = await res.json();
-
-    if (!res.ok || data.errors) {
-      const msg = data.errors?.[0]?.message || `HTTP ${res.status}`;
-      // Fallback to orders REST API
-      return fetchCartsViaOrders();
-    }
-
-    const edges = data?.data?.abandonedCheckouts?.edges || [];
-    carts = edges.map(({ node: c }) => ({
-      id: c.id,
-      customer: c.customer ? `${c.customer.firstName || ''} ${c.customer.lastName || ''}`.trim() || c.customer.email || 'Guest' : 'Guest',
-      phone: c.customer?.phone || '',
-      email: c.customer?.email || '',
-      items: (c.lineItems?.edges || []).map(e => ({ title: e.node.title, qty: e.node.quantity })),
-      value: parseFloat(c.totalPriceSet?.shopMoney?.amount || 0),
-      currency: c.totalPriceSet?.shopMoney?.currencyCode || 'GBP',
-      createdAt: new Date(c.createdAt),
-    })).filter(c => c.items.length > 0);
-
-    addLog(`Fetched ${carts.length} abandoned checkout${carts.length !== 1 ? 's' : ''}`, 'info');
     renderStats();
     renderTable();
     showLoading(false);
   } catch (e) {
-    fetchCartsViaOrders();
-  }
-}
-
-async function fetchCartsViaOrders() {
-  const since = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
-  try {
-    const url = `${proxyUrl}/api/shopify?path=orders.json%3Fstatus%3Dany%26limit%3D250%26created_at_min%3D${encodeURIComponent(since)}`;
-    const res = await fetch(url, {
-      headers: { 'x-shopify-store': storeUrl, 'x-shopify-token': apiToken }
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      showError(`Shopify API error: ${data.errors || 'HTTP ' + res.status}`);
-      showLoading(false);
-      return;
-    }
-    carts = (data.orders || []).filter(o => o.financial_status === 'pending' && !o.fulfillment_status).map(o => ({
-      id: String(o.id),
-      customer: (o.billing_address?.name || (o.customer ? o.customer.first_name + ' ' + o.customer.last_name : '') || o.email || 'Guest').trim(),
-      phone: o.billing_address?.phone || o.customer?.phone || '',
-      email: o.email || '',
-      items: (o.line_items || []).map(li => ({ title: li.title, qty: li.quantity })),
-      value: parseFloat(o.total_price || 0),
-      currency: o.currency || 'GBP',
-      createdAt: new Date(o.created_at),
-    })).filter(c => c.items.length > 0);
-    addLog(`Fetched ${carts.length} pending order${carts.length !== 1 ? 's' : ''} (fallback)`, 'info');
-    renderStats();
-    renderTable();
-    showLoading(false);
-  } catch(e) {
     showError(`Connection failed: ${e.message}`);
     showLoading(false);
   }
