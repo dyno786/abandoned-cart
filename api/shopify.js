@@ -6,61 +6,30 @@ export default async function handler(req, res) {
 
   const store = req.headers['x-shopify-store'];
   const token = req.headers['x-shopify-token'];
-
   if (!store || !token) return res.status(400).json({ error: 'Missing headers' });
 
-  const isGraphQL = req.query.graphql === '1';
+  const headers = {
+    'X-Shopify-Access-Token': token,
+    'Content-Type': 'application/json',
+  };
 
-  if (isGraphQL) {
-    let body = '';
-    if (req.body) {
-      body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-    } else {
-      body = JSON.stringify({
-        query: `{
-          abandonedCheckouts(first: 50) {
-            edges {
-              node {
-                id
-                createdAt
-                totalPriceSet { shopMoney { amount currencyCode } }
-                customer { firstName lastName phone email }
-                lineItems(first: 10) {
-                  edges {
-                    node { title quantity }
-                  }
-                }
-              }
-            }
-          }
-        }`
-      });
-    }
-
-    const url = `https://${store}/admin/api/2024-01/graphql.json`;
+  // GraphQL endpoint
+  if (req.query.graphql === '1') {
+    const body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
     try {
-      const r = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'X-Shopify-Access-Token': token,
-          'Content-Type': 'application/json',
-        },
-        body
+      const r = await fetch(`https://${store}/admin/api/2024-01/graphql.json`, {
+        method: 'POST', headers, body
       });
-      const data = await r.json();
-      return res.status(r.status).json(data);
+      return res.status(r.status).json(await r.json());
     } catch (err) {
       return res.status(500).json({ error: err.message });
     }
   }
 
-  // REST fallback
+  // REST endpoint
   const path = req.query.path || '';
-  const url = `https://${store}/admin/api/2024-01/${path}`;
   try {
-    const r = await fetch(url, {
-      headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' }
-    });
+    const r = await fetch(`https://${store}/admin/api/2024-01/${path}`, { headers });
     const data = await r.json();
     return res.status(r.status).json(data);
   } catch (err) {
