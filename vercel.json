@@ -1,3 +1,10 @@
-{
-  "rewrites": [{ "source": "/api/(.*)", "destination": "/api/shopify" }]
-}
+{}
+```
+
+Yes, just an empty object. The previous `vercel.json` had routing rules that were overriding the automatic `/api` folder detection. Vercel finds `api/shopify.js` automatically — we don't need to tell it anything.
+
+**Then commit that change** and wait 30 seconds for Vercel to redeploy.
+
+Also — can you paste the **exact URL** you're visiting? It should be:
+```
+https://abandoned-cart-XXXX.vercel.app/api/shopify
