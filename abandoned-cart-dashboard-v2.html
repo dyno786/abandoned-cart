@@ -151,6 +151,7 @@
     position: sticky;
     top: 0;
     z-index: 10;
+    position: relative;
   }
 
   .logo {
@@ -246,6 +247,31 @@
   }
 
   .btn-refresh:hover { border-color: var(--accent); }
+
+  .header-center {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .tab-btn {
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--rad);
+    padding: 7px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: var(--font);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .tab-btn:hover { color: var(--text); background: var(--surface2); }
+  .tab-btn.active { color: var(--accent); border-color: rgba(37,211,102,0.3); background: rgba(37,211,102,0.07); }
 
   .btn-disconnect {
     background: none;
@@ -771,6 +797,10 @@
       </div>
       Cart Recovery
     </div>
+    <div class="header-center">
+      <button class="tab-btn active" id="tab-abandoned" onclick="switchTab('abandoned')">Abandoned Carts</button>
+      <button class="tab-btn" id="tab-reorder" onclick="switchTab('reorder')">Re-order Campaign</button>
+    </div>
     <div class="header-right">
       <span class="store-badge" id="store-badge">store.myshopify.com</span>
       <label class="auto-toggle">
@@ -788,7 +818,7 @@
     </div>
   </header>
 
-  <div class="main">
+  <div id="panel-abandoned" class="main">
     <!-- Stats -->
     <div class="stats-row">
       <div class="stat-card">
@@ -884,6 +914,88 @@
       </div>
     </div>
   </div>
+</div>
+
+</div><!-- end panel-abandoned -->
+
+<!-- Re-order Campaign Panel -->
+<div id="panel-reorder" class="main" style="display:none;">
+
+  <div class="stats-row" style="margin-bottom:20px;">
+    <div class="stat-card">
+      <div class="s-label">Customers found</div>
+      <div class="s-val warn" id="ro-stat-total">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="s-label">Total orders value</div>
+      <div class="s-val green" id="ro-stat-value">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="s-label">Messages sent</div>
+      <div class="s-val blue" id="ro-stat-sent">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="s-label">Avg order value</div>
+      <div class="s-val" id="ro-stat-avg">—</div>
+    </div>
+  </div>
+
+  <div class="toolbar" style="margin-bottom:16px;">
+    <select class="sort-select" id="ro-month" style="min-width:140px;">
+      <option value="1">January</option>
+      <option value="2">February</option>
+      <option value="3">March</option>
+      <option value="4">April</option>
+      <option value="5">May</option>
+      <option value="6">June</option>
+      <option value="7">July</option>
+      <option value="8">August</option>
+      <option value="9">September</option>
+      <option value="10">October</option>
+      <option value="11">November</option>
+      <option value="12">December</option>
+    </select>
+    <select class="sort-select" id="ro-year" style="min-width:100px;">
+      <option value="2026">2026</option>
+      <option value="2025">2025</option>
+      <option value="2024">2024</option>
+      <option value="2023">2023</option>
+    </select>
+    <button class="btn-refresh" onclick="fetchReorderCustomers()" style="padding:8px 18px;">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Find Customers
+    </button>
+    <div class="search-wrap">
+      <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8a8f9a" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search customers…" id="ro-search" oninput="renderReorderTable()">
+    </div>
+    <button class="btn-send-all" onclick="sendAllReorder()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"/><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm6.27 16.873c-.264.742-1.545 1.414-2.138 1.503-.547.082-1.237.117-1.997-.126-.46-.148-1.049-.346-1.807-.672-3.18-1.37-5.258-4.556-5.417-4.768-.158-.213-1.287-1.712-1.287-3.267s.814-2.323 1.102-2.639c.288-.316.629-.395.839-.395.21 0 .42.002.603.011.193.01.452-.074.707.54.263.635.893 2.186.971 2.343.079.157.131.34.026.553-.105.213-.158.344-.315.528-.158.184-.332.41-.474.55-.158.157-.322.328-.138.643.183.316.815 1.346 1.748 2.18 1.201 1.073 2.213 1.406 2.529 1.563.316.157.501.131.685-.079.184-.21.788-.922 1.001-1.24.213-.316.421-.264.709-.158.288.105 1.823.86 2.136 1.017.316.158.527.235.605.367.079.131.079.762-.185 1.504z"/></svg>
+      WhatsApp all
+    </button>
+  </div>
+
+  <div class="cart-table-wrap">
+    <div id="ro-loading" class="loading-state" style="display:none;">
+      <div class="spinner"></div>
+      <div>Fetching customers...</div>
+    </div>
+    <div id="ro-empty" class="empty-state">Select a month and year then click Find Customers.</div>
+    <table id="ro-table" style="display:none;">
+      <thead>
+        <tr>
+          <th>Customer</th>
+          <th>Last order</th>
+          <th>Items ordered</th>
+          <th>Order value</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="ro-tbody"></tbody>
+    </table>
+  </div>
+
 </div>
 
 <div class="toast" id="toast">
@@ -1390,6 +1502,175 @@ async function sendEmailRecovery(cartId) {
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+// ── Re-order Campaign ──────────────────────────────────────
+let roCustomers = [], roSentIds = new Set(), roMessagesSent = 0;
+
+function switchTab(tab) {
+  document.getElementById('panel-abandoned').style.display = tab === 'abandoned' ? 'block' : 'none';
+  document.getElementById('panel-reorder').style.display = tab === 'reorder' ? 'block' : 'none';
+  document.getElementById('tab-abandoned').classList.toggle('active', tab === 'abandoned');
+  document.getElementById('tab-reorder').classList.toggle('active', tab === 'reorder');
+}
+
+async function fetchReorderCustomers() {
+  const month = parseInt(document.getElementById('ro-month').value);
+  const year = parseInt(document.getElementById('ro-year').value);
+  const start = new Date(year, month - 1, 1).toISOString();
+  const end = new Date(year, month, 1).toISOString();
+
+  document.getElementById('ro-loading').style.display = 'block';
+  document.getElementById('ro-table').style.display = 'none';
+  document.getElementById('ro-empty').style.display = 'none';
+
+  try {
+    const path = `orders.json?status=any&limit=250&created_at_min=${encodeURIComponent(start)}&created_at_max=${encodeURIComponent(end)}&financial_status=paid`;
+    const res = await fetch(`${proxyUrl}/api/shopify?path=${encodeURIComponent(path)}`, {
+      headers: { 'x-shopify-store': storeUrl, 'x-shopify-token': apiToken }
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      showToast(`Error: ${data.errors || res.status}`, '#ef4444');
+      document.getElementById('ro-loading').style.display = 'none';
+      document.getElementById('ro-empty').style.display = 'block';
+      return;
+    }
+
+    // Deduplicate by customer email/phone, keep highest value order
+    const customerMap = {};
+    (data.orders || []).forEach(o => {
+      const key = o.email || o.billing_address?.phone || String(o.id);
+      const existing = customerMap[key];
+      if (!existing || parseFloat(o.total_price) > parseFloat(existing.total_price)) {
+        customerMap[key] = o;
+      }
+    });
+
+    roCustomers = Object.values(customerMap).map(o => ({
+      id: String(o.id),
+      customer: (o.billing_address?.name || (o.customer ? o.customer.first_name + ' ' + o.customer.last_name : '') || o.email || 'Guest').trim(),
+      phone: o.billing_address?.phone || o.customer?.phone || '',
+      email: o.email || '',
+      items: (o.line_items || []).map(li => ({ title: li.title, qty: li.quantity })),
+      value: parseFloat(o.total_price || 0),
+      currency: o.currency || 'GBP',
+      orderedAt: new Date(o.created_at),
+    }));
+
+    // Update stats
+    const total = roCustomers.reduce((s, c) => s + c.value, 0);
+    const avg = roCustomers.length ? total / roCustomers.length : 0;
+    const currency = roCustomers[0]?.currency || 'GBP';
+    const fmt = (v) => new Intl.NumberFormat('en-GB', { style: 'currency', currency }).format(v);
+    document.getElementById('ro-stat-total').textContent = roCustomers.length;
+    document.getElementById('ro-stat-value').textContent = fmt(total);
+    document.getElementById('ro-stat-avg').textContent = fmt(avg);
+
+    document.getElementById('ro-loading').style.display = 'none';
+    renderReorderTable();
+    addLog(`Re-order: found ${roCustomers.length} customers from ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][month-1]} ${year}`, 'info');
+  } catch(e) {
+    showToast(`Connection error: ${e.message}`, '#ef4444');
+    document.getElementById('ro-loading').style.display = 'none';
+    document.getElementById('ro-empty').style.display = 'block';
+  }
+}
+
+function renderReorderTable() {
+  const q = document.getElementById('ro-search').value.toLowerCase();
+  const filtered = roCustomers.filter(c =>
+    c.customer.toLowerCase().includes(q) ||
+    c.phone.includes(q) ||
+    c.email.toLowerCase().includes(q)
+  );
+
+  if (filtered.length === 0) {
+    document.getElementById('ro-table').style.display = 'none';
+    document.getElementById('ro-empty').style.display = 'block';
+    document.getElementById('ro-empty').textContent = roCustomers.length ? 'No customers match your search.' : 'Select a month and year then click Find Customers.';
+    return;
+  }
+
+  document.getElementById('ro-table').style.display = 'table';
+  document.getElementById('ro-empty').style.display = 'none';
+
+  const tbody = document.getElementById('ro-tbody');
+  tbody.innerHTML = filtered.map(c => {
+    const initials = c.customer.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    const colorIdx = c.id.charCodeAt(c.id.length - 1) % AVATARCOLORS.length;
+    const [bgColor, txtColor] = AVATARCOLORS[colorIdx];
+    const fmt = new Intl.NumberFormat('en-GB', { style: 'currency', currency: c.currency }).format(c.value);
+    const dateStr = c.orderedAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    const isSent = roSentIds.has(c.id);
+    const hasPhone = !!(c.phone && c.phone.replace(/\D/g,'').length > 7);
+    const waLink = buildReorderWALink(c);
+    const itemPills = c.items.slice(0, 3).map(it =>
+      `<span class="item-pill"><span>${esc(it.title)}</span> x${it.qty}</span>`
+    ).join('') + (c.items.length > 3 ? `<span class="item-pill"><span>+${c.items.length - 3} more</span></span>` : '');
+
+    return `<tr>
+      <td>
+        <div class="customer-cell">
+          <div class="avatar" style="background:${bgColor};color:${txtColor}">${initials}</div>
+          <div>
+            <div class="cust-name">${esc(c.customer)}</div>
+            <div class="cust-phone">${esc(c.phone || c.email || 'No contact')}</div>
+          </div>
+        </div>
+      </td>
+      <td class="age-cell">${dateStr}</td>
+      <td class="items-cell">${itemPills}</td>
+      <td class="value-cell">${fmt}</td>
+      <td>${isSent
+        ? `<span class="sent-tag"><span class="status-dot sent-dot"></span>Sent</span>`
+        : `<span style="font-size:12px;color:var(--muted);"><span class="status-dot unsent-dot"></span>Not sent</span>`
+      }</td>
+      <td class="action-cell">
+        ${hasPhone ? `<a href="${waLink}" target="_blank" class="btn-wa" onclick="markRoSent('${c.id}')">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"/><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm.004 21.818a9.813 9.813 0 0 1-5.003-1.368l-.359-.213-3.681.965.982-3.588-.234-.369a9.816 9.816 0 0 1-1.504-5.245c0-5.42 4.41-9.83 9.83-9.83 5.421 0 9.832 4.41 9.832 9.83 0 5.421-4.411 9.818-9.863 9.818z"/></svg>
+          Re-order
+        </a>` : `<span style="font-size:11px;color:var(--muted);">No phone</span>`}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function buildReorderWALink(c) {
+  const fmt = new Intl.NumberFormat('en-GB', { style: 'currency', currency: c.currency }).format(c.value);
+  const firstName = c.customer.split(' ')[0];
+  const itemsList = c.items.map(i => `- ${i.title} (x${i.qty})`).join('\n');
+  const month = document.getElementById('ro-month');
+  const monthName = month ? month.options[month.selectedIndex].text : 'recently';
+  const msg =
+    `Hi ${firstName}!\n\n` +
+    `We noticed you shopped with us in ${monthName} and wanted to check in!\n\n` +
+    `You previously ordered:\n${itemsList}\n\n` +
+    `Are you running low and need to re-order? We have everything ready for you!\n\n` +
+    `Shop here: https://${storeUrl}\n\n` +
+    `Any questions just reply — we are happy to help!\n\nCC Hair & Beauty`;
+  const phone = (c.phone || '').replace(/\D/g, '');
+  return phone ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+}
+
+function markRoSent(id) {
+  roSentIds.add(id);
+  roMessagesSent++;
+  document.getElementById('ro-stat-sent').textContent = roMessagesSent;
+  setTimeout(renderReorderTable, 300);
+}
+
+function sendAllReorder() {
+  const unsent = roCustomers.filter(c => !roSentIds.has(c.id) && c.phone && c.phone.replace(/\D/g,'').length > 7);
+  if (unsent.length === 0) { showToast('No customers with phone numbers to message', '#f59e0b'); return; }
+  unsent.forEach((c, i) => {
+    setTimeout(() => {
+      window.open(buildReorderWALink(c), '_blank');
+      markRoSent(c.id);
+    }, i * 400);
+  });
+  showToast(`Opened ${unsent.length} WhatsApp message${unsent.length > 1 ? 's' : ''}`, '#25d366');
+}
+
 // Check for Gmail OAuth callback on page load
 checkGmailCallback();
 // Auto-restore session if creds saved and we're coming back from OAuth
