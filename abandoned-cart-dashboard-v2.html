@@ -1548,6 +1548,7 @@ async function fetchReorderCustomers() {
 
     roCustomers = Object.values(customerMap).map(o => ({
       id: String(o.id),
+      orderNumber: o.order_number || o.name || String(o.id),
       customer: (o.billing_address?.name || (o.customer ? o.customer.first_name + ' ' + o.customer.last_name : '') || o.email || 'Guest').trim(),
       phone: o.billing_address?.phone || o.customer?.phone || '',
       email: o.email || '',
@@ -1555,6 +1556,7 @@ async function fetchReorderCustomers() {
       value: parseFloat(o.total_price || 0),
       currency: o.currency || 'GBP',
       orderedAt: new Date(o.created_at),
+      orderStatusUrl: o.order_status_url || '',
     }));
 
     // Update stats
@@ -1641,12 +1643,14 @@ function buildReorderWALink(c) {
   const itemsList = c.items.map(i => `- ${i.title} (x${i.qty})`).join('\n');
   const month = document.getElementById('ro-month');
   const monthName = month ? month.options[month.selectedIndex].text : 'recently';
+  const orderLink = c.orderStatusUrl || `https://${storeUrl}/account/orders/${c.id}`;
   const msg =
     `Hi ${firstName}!\n\n` +
-    `We noticed you shopped with us in ${monthName} and wanted to check in!\n\n` +
+    `We hope you enjoyed your order from ${monthName} — just wanted to check in!\n\n` +
     `You previously ordered:\n${itemsList}\n\n` +
-    `Are you running low and need to re-order? We have everything ready for you!\n\n` +
-    `Shop here: https://${storeUrl}\n\n` +
+    `Are you running low and ready to re-order? We have everything ready for you!\n\n` +
+    `View your previous order here:\n${orderLink}\n\n` +
+    `Or browse our full store:\nhttps://${storeUrl}\n\n` +
     `Any questions just reply — we are happy to help!\n\nCC Hair & Beauty`;
   const phone = (c.phone || '').replace(/\D/g, '');
   return phone ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
