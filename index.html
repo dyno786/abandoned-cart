@@ -897,11 +897,15 @@ function connectStore() {
   const proxy = document.getElementById('proxy-url').value.trim();
   const url = document.getElementById('shop-url').value.trim();
   const token = document.getElementById('api-token').value.trim();
+  const gmail = document.getElementById('gmail-addr')?.value.trim() || '';
   if (!proxy || !url || !token) { showToast('Please fill in all three fields', '#ef4444'); return; }
   proxyUrl = proxy.replace(/\/$/, '');
   storeUrl = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
   apiToken = token;
+  gmailAddr = gmail;
   isDemo = false;
+  // Save so we can restore after Gmail OAuth redirect
+  sessionStorage.setItem('shopifyCreds', JSON.stringify({ proxy: proxyUrl, store: storeUrl, token: apiToken, gmail: gmailAddr }));
   showDashboard();
   fetchCarts();
 }
@@ -1259,9 +1263,30 @@ function checkGmailCallback() {
     const params = new URLSearchParams(hash.substring(1));
     gmailToken = params.get('access_token');
     gmailConnected = true;
+    // Save to sessionStorage so it survives the redirect
+    sessionStorage.setItem('gmailToken', gmailToken);
+    sessionStorage.setItem('gmailConnected', '1');
     window.history.replaceState({}, document.title, window.location.pathname);
+    // Restore saved credentials and go straight to dashboard
+    const saved = sessionStorage.getItem('shopifyCreds');
+    if (saved) {
+      try {
+        const { proxy, store, token, gmail } = JSON.parse(saved);
+        proxyUrl = proxy; storeUrl = store; apiToken = token; gmailAddr = gmail;
+        isDemo = false;
+        showDashboard();
+        fetchCarts();
+      } catch(e) {}
+    }
     updateGmailBanner();
     showToast('Gmail connected! Email recovery enabled.', '#3b82f6');
+  } else {
+    // Restore Gmail token from session if exists
+    const savedToken = sessionStorage.getItem('gmailToken');
+    if (savedToken) {
+      gmailToken = savedToken;
+      gmailConnected = true;
+    }
   }
 }
 
@@ -1337,6 +1362,18 @@ function esc(s) {
 }
 // Check for Gmail OAuth callback on page load
 checkGmailCallback();
+// Auto-restore session if creds saved and we're coming back from OAuth
+const _saved = sessionStorage.getItem('shopifyCreds');
+const _gmailBack = sessionStorage.getItem('gmailConnected');
+if (_saved && _gmailBack && !window.location.hash.includes('access_token')) {
+  try {
+    const { proxy, store, token, gmail } = JSON.parse(_saved);
+    proxyUrl = proxy; storeUrl = store; apiToken = token; gmailAddr = gmail;
+    isDemo = false;
+    showDashboard();
+    fetchCarts();
+  } catch(e) {}
+}
 </script>
 </body>
 </html>
