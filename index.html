@@ -540,6 +540,24 @@
   }
   .btn-email:hover { background: rgba(59,130,246,0.18); }
 
+  .stock-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: 5px;
+    margin: 2px 2px 0 0;
+    white-space: nowrap;
+  }
+  .stock-in { background: rgba(37,211,102,0.1); color: #25d366; border: 1px solid rgba(37,211,102,0.2); }
+  .stock-out { background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+  .stock-low { background: rgba(245,158,11,0.1); color: #f59e0b; border: 1px solid rgba(245,158,11,0.2); }
+  .stock-unknown { background: rgba(138,143,154,0.1); color: #8a8f9a; border: 1px solid rgba(138,143,154,0.2); }
+  .row-out-of-stock { opacity: 0.45; }
+  .stock-checking { font-size: 11px; color: var(--muted); font-style: italic; }
+
   .btn-checkout {
     display: inline-flex;
     align-items: center;
@@ -1504,6 +1522,67 @@ function esc(s) {
 }
 // ── Re-order Campaign ──────────────────────────────────────
 let roCustomers = [], roSentIds = new Set(), roMessagesSent = 0;
+let stockCache = {}, stockChecking = false;
+
+async function checkStockForCustomers(customers) {
+  stockChecking = true;
+  // Collect unique product titles
+  const titles = [...new Set(customers.flatMap(c => c.items.map(i => i.title)))];
+  addLog(`Checking stock for ${titles.length} unique products...`, 'info');
+
+  // Search products in batches of 5
+  for (let i = 0; i < titles.length; i += 5) {
+    const batch = titles.slice(i, i + 5);
+    await Promise.all(batch.map(async (title) => {
+      try {
+        const query = encodeURIComponent(`title:${title.substring(0, 50)}`);
+        const path = `products.json?title=${encodeURIComponent(title.substring(0, 50))}&limit=5&fields=id,title,status,variants`;
+        const res = await fetch(`${proxyUrl}/api/shopify?path=${encodeURIComponent(path)}`, {
+          headers: { 'x-shopify-store': storeUrl, 'x-shopify-token': apiToken }
+        });
+        const data = await res.json();
+        const products = data.products || [];
+
+        if (products.length === 0) {
+          stockCache[title] = { status: 'discontinued', qty: 0 };
+          return;
+        }
+
+        // Find best matching product
+        const product = products.find(p => p.title.toLowerCase() === title.toLowerCase()) || products[0];
+
+        if (product.status === 'archived' || product.status === 'draft') {
+          stockCache[title] = { status: 'discontinued', qty: 0 };
+          return;
+        }
+
+        // Sum inventory across all variants
+        const totalQty = (product.variants || []).reduce((sum, v) => {
+          if (v.inventory_management === null) return sum + 999; // no tracking = always in stock
+          return sum + (parseInt(v.inventory_quantity) || 0);
+        }, 0);
+
+        if (totalQty <= 0) {
+          stockCache[title] = { status: 'out', qty: 0 };
+        } else if (totalQty <= 5) {
+          stockCache[title] = { status: 'low', qty: totalQty };
+        } else {
+          stockCache[title] = { status: 'in', qty: totalQty };
+        }
+      } catch(e) {
+        stockCache[title] = { status: 'unknown', qty: 0 };
+      }
+    }));
+    // Re-render after each batch so user sees results appearing
+    renderReorderTable();
+  }
+
+  stockChecking = false;
+  const outCount = Object.values(stockCache).filter(s => s.status === 'out' || s.status === 'discontinued').length;
+  const inCount = Object.values(stockCache).filter(s => s.status === 'in' || s.status === 'low').length;
+  addLog(`Stock check complete: ${inCount} in stock, ${outCount} out/discontinued`, 'info');
+  renderReorderTable();
+}
 
 function switchTab(tab) {
   document.getElementById('panel-abandoned').style.display = tab === 'abandoned' ? 'block' : 'none';
@@ -1571,6 +1650,9 @@ async function fetchReorderCustomers() {
     document.getElementById('ro-loading').style.display = 'none';
     renderReorderTable();
     addLog(`Re-order: found ${roCustomers.length} customers from ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][month-1]} ${year}`, 'info');
+    // Auto-check stock for all items
+    stockCache = {};
+    checkStockForCustomers(roCustomers);
   } catch(e) {
     showToast(`Connection error: ${e.message}`, '#ef4444');
     document.getElementById('ro-loading').style.display = 'none';
@@ -1606,11 +1688,38 @@ function renderReorderTable() {
     const isSent = roSentIds.has(c.id);
     const hasPhone = !!(c.phone && c.phone.replace(/\D/g,'').length > 7);
     const waLink = buildReorderWALink(c);
-    const itemPills = c.items.slice(0, 3).map(it =>
-      `<span class="item-pill"><span>${esc(it.title)}</span> x${it.qty}</span>`
-    ).join('') + (c.items.length > 3 ? `<span class="item-pill"><span>+${c.items.length - 3} more</span></span>` : '');
+    // Check stock status for this customer's items
+    const allOutOfStock = c.items.every(it => {
+      const s = stockCache[it.title];
+      return s && s.status === 'out';
+    });
+    const hasStockInfo = c.items.some(it => stockCache[it.title]);
+    const rowClass = allOutOfStock ? 'row-out-of-stock' : '';
 
-    return `<tr>
+    const itemPills = c.items.slice(0, 3).map(it => {
+      const s = stockCache[it.title];
+      let stockBadge = '';
+      if (s) {
+        if (s.status === 'in') stockBadge = `<span class="stock-pill stock-in">In stock</span>`;
+        else if (s.status === 'low') stockBadge = `<span class="stock-pill stock-low">Low (${s.qty})</span>`;
+        else if (s.status === 'out') stockBadge = `<span class="stock-pill stock-out">Out of stock</span>`;
+        else if (s.status === 'discontinued') stockBadge = `<span class="stock-pill stock-out">Discontinued</span>`;
+      } else if (stockChecking) {
+        stockBadge = `<span class="stock-checking">checking...</span>`;
+      }
+      return `<div style="margin-bottom:4px"><span class="item-pill"><span>${esc(it.title)}</span> x${it.qty}</span>${stockBadge}</div>`;
+    }).join('') + (c.items.length > 3 ? `<span class="item-pill"><span>+${c.items.length - 3} more</span></span>` : '');
+
+    const actionBtn = !hasPhone
+      ? `<span style="font-size:11px;color:var(--muted);">No phone</span>`
+      : allOutOfStock
+      ? `<span style="font-size:11px;color:var(--danger);">All items out of stock</span>`
+      : `<a href="${waLink}" target="_blank" class="btn-wa" onclick="markRoSent('${c.id}')">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"/><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm.004 21.818a9.813 9.813 0 0 1-5.003-1.368l-.359-.213-3.681.965.982-3.588-.234-.369a9.816 9.816 0 0 1-1.504-5.245c0-5.42 4.41-9.83 9.83-9.83 5.421 0 9.832 4.41 9.832 9.83 0 5.421-4.411 9.818-9.863 9.818z"/></svg>
+          Re-order
+        </a>`;
+
+    return `<tr class="${rowClass}">
       <td>
         <div class="customer-cell">
           <div class="avatar" style="background:${bgColor};color:${txtColor}">${initials}</div>
@@ -1627,12 +1736,7 @@ function renderReorderTable() {
         ? `<span class="sent-tag"><span class="status-dot sent-dot"></span>Sent</span>`
         : `<span style="font-size:12px;color:var(--muted);"><span class="status-dot unsent-dot"></span>Not sent</span>`
       }</td>
-      <td class="action-cell">
-        ${hasPhone ? `<a href="${waLink}" target="_blank" class="btn-wa" onclick="markRoSent('${c.id}')">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"/><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm.004 21.818a9.813 9.813 0 0 1-5.003-1.368l-.359-.213-3.681.965.982-3.588-.234-.369a9.816 9.816 0 0 1-1.504-5.245c0-5.42 4.41-9.83 9.83-9.83 5.421 0 9.832 4.41 9.832 9.83 0 5.421-4.411 9.818-9.863 9.818z"/></svg>
-          Re-order
-        </a>` : `<span style="font-size:11px;color:var(--muted);">No phone</span>`}
-      </td>
+      <td class="action-cell">${actionBtn}</td>
     </tr>`;
   }).join('');
 }
@@ -1664,8 +1768,17 @@ function markRoSent(id) {
 }
 
 function sendAllReorder() {
-  const unsent = roCustomers.filter(c => !roSentIds.has(c.id) && c.phone && c.phone.replace(/\D/g,'').length > 7);
-  if (unsent.length === 0) { showToast('No customers with phone numbers to message', '#f59e0b'); return; }
+  const unsent = roCustomers.filter(c => {
+    if (roSentIds.has(c.id)) return false;
+    if (!c.phone || c.phone.replace(/\D/g,'').length <= 7) return false;
+    // Skip if ALL items are out of stock
+    const allOut = c.items.every(it => {
+      const s = stockCache[it.title];
+      return s && (s.status === 'out' || s.status === 'discontinued');
+    });
+    return !allOut;
+  });
+  if (unsent.length === 0) { showToast('No customers to message — all items may be out of stock', '#f59e0b'); return; }
   unsent.forEach((c, i) => {
     setTimeout(() => {
       window.open(buildReorderWALink(c), '_blank');
