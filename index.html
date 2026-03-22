@@ -1526,54 +1526,85 @@ let stockCache = {}, stockChecking = false;
 
 async function checkStockForCustomers(customers) {
   stockChecking = true;
-  // Collect unique product titles
-  const titles = [...new Set(customers.flatMap(c => c.items.map(i => i.title)))];
-  addLog(`Checking stock for ${titles.length} unique products...`, 'info');
 
-  // Search products in batches of 5
-  for (let i = 0; i < titles.length; i += 5) {
-    const batch = titles.slice(i, i + 5);
-    await Promise.all(batch.map(async (title) => {
+  // Collect unique items by productId (most reliable) falling back to title
+  const uniqueItems = {};
+  customers.flatMap(c => c.items).forEach(it => {
+    const key = it.productId || it.title;
+    if (!uniqueItems[key]) uniqueItems[key] = it;
+  });
+
+  const items = Object.values(uniqueItems);
+  addLog(`Checking stock for ${items.length} unique products...`, 'info');
+
+  // Check in batches of 5
+  for (let i = 0; i < items.length; i += 5) {
+    const batch = items.slice(i, i + 5);
+    await Promise.all(batch.map(async (item) => {
+      const cacheKey = item.title;
       try {
-        const query = encodeURIComponent(`title:${title.substring(0, 50)}`);
-        const path = `products.json?title=${encodeURIComponent(title.substring(0, 50))}&limit=5&fields=id,title,status,variants`;
-        const res = await fetch(`${proxyUrl}/api/shopify?path=${encodeURIComponent(path)}`, {
-          headers: { 'x-shopify-store': storeUrl, 'x-shopify-token': apiToken }
-        });
-        const data = await res.json();
-        const products = data.products || [];
+        let product = null;
 
-        if (products.length === 0) {
-          stockCache[title] = { status: 'discontinued', qty: 0 };
-          return;
+        // Method 1: look up by product ID (exact, reliable)
+        if (item.productId) {
+          const path = `products/${item.productId}.json?fields=id,title,status,variants`;
+          const res = await fetch(`${proxyUrl}/api/shopify?path=${encodeURIComponent(path)}`, {
+            headers: { 'x-shopify-store': storeUrl, 'x-shopify-token': apiToken }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            product = data.product;
+          }
         }
 
-        // Find best matching product
-        const product = products.find(p => p.title.toLowerCase() === title.toLowerCase()) || products[0];
+        // Method 2: fall back to title search if product ID failed
+        if (!product) {
+          const path = `products.json?limit=3&fields=id,title,status,variants&title=${encodeURIComponent(item.title.substring(0, 60))}`;
+          const res = await fetch(`${proxyUrl}/api/shopify?path=${encodeURIComponent(path)}`, {
+            headers: { 'x-shopify-store': storeUrl, 'x-shopify-token': apiToken }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            // Pick exact title match first, then closest
+            product = (data.products || []).find(p =>
+              p.title.toLowerCase() === item.title.toLowerCase()
+            ) || (data.products || [])[0];
+          }
+        }
+
+        if (!product) {
+          stockCache[cacheKey] = { status: 'discontinued', qty: 0 };
+          return;
+        }
 
         if (product.status === 'archived' || product.status === 'draft') {
-          stockCache[title] = { status: 'discontinued', qty: 0 };
+          stockCache[cacheKey] = { status: 'discontinued', qty: 0 };
           return;
         }
 
-        // Sum inventory across all variants
-        const totalQty = (product.variants || []).reduce((sum, v) => {
-          if (v.inventory_management === null) return sum + 999; // no tracking = always in stock
-          return sum + (parseInt(v.inventory_quantity) || 0);
+        // Check specific variant if we have variant ID
+        let relevantVariants = product.variants || [];
+        if (item.variantId) {
+          const specific = relevantVariants.find(v => String(v.id) === item.variantId);
+          if (specific) relevantVariants = [specific];
+        }
+
+        const totalQty = relevantVariants.reduce((sum, v) => {
+          if (!v.inventory_management) return sum + 999; // untracked = always available
+          return sum + Math.max(0, parseInt(v.inventory_quantity) || 0);
         }, 0);
 
         if (totalQty <= 0) {
-          stockCache[title] = { status: 'out', qty: 0 };
+          stockCache[cacheKey] = { status: 'out', qty: 0 };
         } else if (totalQty <= 5) {
-          stockCache[title] = { status: 'low', qty: totalQty };
+          stockCache[cacheKey] = { status: 'low', qty: totalQty };
         } else {
-          stockCache[title] = { status: 'in', qty: totalQty };
+          stockCache[cacheKey] = { status: 'in', qty: totalQty };
         }
       } catch(e) {
-        stockCache[title] = { status: 'unknown', qty: 0 };
+        stockCache[cacheKey] = { status: 'unknown', qty: 0 };
       }
     }));
-    // Re-render after each batch so user sees results appearing
     renderReorderTable();
   }
 
@@ -1631,7 +1662,12 @@ async function fetchReorderCustomers() {
       customer: (o.billing_address?.name || (o.customer ? o.customer.first_name + ' ' + o.customer.last_name : '') || o.email || 'Guest').trim(),
       phone: o.billing_address?.phone || o.customer?.phone || '',
       email: o.email || '',
-      items: (o.line_items || []).map(li => ({ title: li.title, qty: li.quantity })),
+      items: (o.line_items || []).map(li => ({
+        title: li.title,
+        qty: li.quantity,
+        variantId: li.variant_id ? String(li.variant_id) : null,
+        productId: li.product_id ? String(li.product_id) : null,
+      })),
       value: parseFloat(o.total_price || 0),
       currency: o.currency || 'GBP',
       orderedAt: new Date(o.created_at),
