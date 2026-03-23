@@ -1294,6 +1294,13 @@ function showDashboard() {
   document.getElementById('store-badge').textContent = storeUrl;
   gmailAddr = document.getElementById('gmail-addr')?.value || '';
   updateGmailBanner();
+  // Default re-order dropdowns to last month
+  const now = new Date();
+  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const mo = document.getElementById('ro-month');
+  const yr = document.getElementById('ro-year');
+  if (mo) mo.value = lastMonth.getMonth() + 1;
+  if (yr) yr.value = lastMonth.getFullYear();
 }
 
 function disconnect() {
@@ -2314,16 +2321,6 @@ function sendAllReorder() {
   });
   showToast(`Opened ${unsent.length} WhatsApp message${unsent.length > 1 ? 's' : ''}`, '#25d366');
 }
-
-// Set re-order dropdowns to last month by default
-(function() {
-  const now = new Date();
-  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const mo = document.getElementById('ro-month');
-  const yr = document.getElementById('ro-year');
-  if (mo) mo.value = lastMonth.getMonth() + 1;
-  if (yr) yr.value = lastMonth.getFullYear();
-})();
 
 // Check for Gmail OAuth callback on page load
 checkGmailCallback();
