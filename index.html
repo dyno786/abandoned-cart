@@ -1294,13 +1294,15 @@ function showDashboard() {
   document.getElementById('store-badge').textContent = storeUrl;
   gmailAddr = document.getElementById('gmail-addr')?.value || '';
   updateGmailBanner();
-  // Default re-order dropdowns to last month
+  // Default re-order dropdowns to last month and auto-load
   const now = new Date();
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const mo = document.getElementById('ro-month');
   const yr = document.getElementById('ro-year');
   if (mo) mo.value = lastMonth.getMonth() + 1;
   if (yr) yr.value = lastMonth.getFullYear();
+  // Auto-fetch re-order customers after a short delay
+  setTimeout(fetchReorderCustomers, 1500);
 }
 
 function disconnect() {
