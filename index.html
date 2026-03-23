@@ -1729,56 +1729,117 @@ async function renderSourcingList() {
   document.getElementById('src-cust-count').textContent = allAffected.length;
 
   // Render cards with placeholder, then fetch details
-  grid.innerHTML = Object.values(sourcingItems).map(item => {
+  // Build cards using DOM to avoid quote escaping issues
+  grid.innerHTML = '';
+  Object.values(sourcingItems).forEach(item => {
     const isSourced = !!sourcedItems[item.title];
     const details = sourcingDetails[item.title];
     const statusClass = item.status === 'discontinued' ? 'sourcing-status-discontinued' : 'sourcing-status-out';
     const statusLabel = item.status === 'discontinued' ? 'Discontinued' : 'Out of Stock';
-
-    const imgSrc = details?.image
-      ? `${proxyUrl}/api/shopify?imgurl=${encodeURIComponent(details.image)}`
-      : '';
-    const imgHtml = imgSrc
-      ? `<img src="${imgSrc}" class="sourcing-img" alt="${esc(item.title)}"
-           onerror="this.outerHTML='<div class=\'sourcing-img-placeholder\'><svg width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" opacity=\"0.3\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><polyline points=\"21 15 16 10 5 21\"/></svg><span style=\"font-size:11px;color:#8a8f9a\">No image</span></div>'">`
-      : `<div class="sourcing-img-placeholder">
-           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-           <span style="font-size:11px;color:#8a8f9a;">No image</span>
-         </div>`;
-
     const variantInfo = details?.variants?.[0];
-    const barcode = variantInfo?.barcode || variantInfo?.sku || '—';
-    const size = variantInfo?.title || variantInfo?.weight || '—';
-    const description = details?.description || 'Loading details...';
+    const barcode = variantInfo?.barcode || variantInfo?.sku || '';
+    const size = (variantInfo?.title && variantInfo.title !== 'Default Title') ? variantInfo.title : (variantInfo?.weight || '');
+    const description = details?.description || (details === undefined ? 'Loading...' : '');
+    const imgSrc = details?.image ? `${proxyUrl}/api/shopify?imgurl=${encodeURIComponent(details.image)}` : '';
 
-    return `<div class="sourcing-card ${isSourced ? 'sourced' : ''}" id="src-card-${btoa(item.title).substring(0,16)}">
-      ${imgHtml}
-      <div class="sourcing-body">
-        <span class="sourcing-status-badge ${statusClass}">${statusLabel}</span>
-        <div class="sourcing-title" style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
-          <span>${esc(item.title)}</span>
-          <button onclick="copyText('${esc(item.title).replace(/'/g,"\\'")}', this)" style="background:none;border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:10px;color:var(--muted);cursor:pointer;flex-shrink:0;font-family:var(--font);margin-top:1px">Copy</button>
-        </div>
-        <div class="sourcing-customer-count">${item.customers.length} customer${item.customers.length !== 1 ? 's' : ''} affected</div>
-        <div class="sourcing-meta">
-          <div class="sourcing-meta-row"><strong>Size/Var</strong>${esc(size)}</div>
-          <div class="sourcing-meta-row">
-            <strong>Barcode</strong>
-            <span style="font-family:var(--mono);font-size:11px">${esc(barcode)}</span>
-            ${barcode !== '—' ? `<button onclick="copyText('${barcode.replace(/'/g,"\\'")}', this)" style="background:none;border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:10px;color:var(--muted);cursor:pointer;margin-left:4px;font-family:var(--font)">Copy</button>` : ''}
-          </div>
-          <div class="sourcing-meta-row" style="align-items:flex-start"><strong>Info</strong><span style="line-height:1.5">${esc(description)}</span></div>
-        </div>
-      </div>
-      <div class="sourcing-footer">
-        ${isSourced
-          ? `<button class="btn-unsource" onclick="unsourceItem('${esc(item.title).replace(/'/g,"\\'")}')">Undo sourced</button>
-             <span style="font-size:12px;color:var(--accent);align-self:center;margin-left:4px">Got it!</span>`
-          : `<button class="btn-sourced" onclick="markSourced('${esc(item.title).replace(/'/g,"\\'")}')">Mark as sourced</button>`
-        }
-      </div>
-    </div>`;
-  }).join('');
+    const card = document.createElement('div');
+    card.className = 'sourcing-card' + (isSourced ? ' sourced' : '');
+
+    // Image
+    if (imgSrc) {
+      const img = document.createElement('img');
+      img.src = imgSrc;
+      img.className = 'sourcing-img';
+      img.loading = 'lazy';
+      img.onerror = function() {
+        const ph = document.createElement('div');
+        ph.className = 'sourcing-img-placeholder';
+        ph.innerHTML = '<span style="font-size:11px;color:#8a8f9a">No image</span>';
+        this.parentNode.replaceChild(ph, this);
+      };
+      card.appendChild(img);
+    } else {
+      const ph = document.createElement('div');
+      ph.className = 'sourcing-img-placeholder';
+      ph.innerHTML = `<span style="font-size:11px;color:#8a8f9a">${details === undefined ? 'Loading...' : 'No image'}</span>`;
+      card.appendChild(ph);
+    }
+
+    // Body
+    const body = document.createElement('div');
+    body.className = 'sourcing-body';
+
+    const badge = document.createElement('span');
+    badge.className = `sourcing-status-badge ${statusClass}`;
+    badge.textContent = statusLabel;
+    body.appendChild(badge);
+
+    // Title + copy
+    const titleRow = document.createElement('div');
+    titleRow.className = 'sourcing-title';
+    titleRow.style.cssText = 'display:flex;align-items:flex-start;justify-content:space-between;gap:8px;';
+    const titleSpan = document.createElement('span');
+    titleSpan.textContent = item.title;
+    const copyTitleBtn = document.createElement('button');
+    copyTitleBtn.textContent = 'Copy';
+    copyTitleBtn.style.cssText = 'background:none;border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:10px;color:var(--muted);cursor:pointer;flex-shrink:0;font-family:var(--font)';
+    copyTitleBtn.onclick = function() { copyText(item.title, this); };
+    titleRow.appendChild(titleSpan);
+    titleRow.appendChild(copyTitleBtn);
+    body.appendChild(titleRow);
+
+    // Customer count
+    const custDiv = document.createElement('div');
+    custDiv.className = 'sourcing-customer-count';
+    custDiv.textContent = `${item.customers.length} customer${item.customers.length !== 1 ? 's' : ''} affected`;
+    body.appendChild(custDiv);
+
+    // Meta
+    const meta = document.createElement('div');
+    meta.className = 'sourcing-meta';
+    if (size) {
+      meta.innerHTML += `<div class="sourcing-meta-row"><strong>Size/Var</strong>${esc(size)}</div>`;
+    }
+    if (barcode) {
+      const barcodeRow = document.createElement('div');
+      barcodeRow.className = 'sourcing-meta-row';
+      barcodeRow.innerHTML = `<strong>Barcode</strong><span style="font-family:var(--mono);font-size:11px">${esc(barcode)}</span>`;
+      const copyBarcodeBtn = document.createElement('button');
+      copyBarcodeBtn.textContent = 'Copy';
+      copyBarcodeBtn.style.cssText = 'background:none;border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:10px;color:var(--muted);cursor:pointer;margin-left:4px;font-family:var(--font)';
+      copyBarcodeBtn.onclick = function() { copyText(barcode, this); };
+      barcodeRow.appendChild(copyBarcodeBtn);
+      meta.appendChild(barcodeRow);
+    }
+    if (description) {
+      meta.innerHTML += `<div class="sourcing-meta-row" style="align-items:flex-start"><strong>Info</strong><span style="line-height:1.5">${esc(description)}</span></div>`;
+    }
+    body.appendChild(meta);
+    card.appendChild(body);
+
+    // Footer
+    const footer = document.createElement('div');
+    footer.className = 'sourcing-footer';
+    if (isSourced) {
+      const undoBtn = document.createElement('button');
+      undoBtn.className = 'btn-unsource';
+      undoBtn.textContent = 'Undo sourced';
+      undoBtn.onclick = function() { unsourceItem(item.title); };
+      const doneLabel = document.createElement('span');
+      doneLabel.style.cssText = 'font-size:12px;color:var(--accent);padding:0 8px;align-self:center';
+      doneLabel.textContent = 'Sourced!';
+      footer.appendChild(undoBtn);
+      footer.appendChild(doneLabel);
+    } else {
+      const srcBtn = document.createElement('button');
+      srcBtn.className = 'btn-sourced';
+      srcBtn.textContent = 'Mark as sourced';
+      srcBtn.onclick = function() { markSourced(item.title); };
+      footer.appendChild(srcBtn);
+    }
+    card.appendChild(footer);
+    grid.appendChild(card);
+  });
 
   // Fetch product details sequentially to avoid memory issues
   const missing = Object.values(sourcingItems).filter(i => !sourcingDetails[i.title]);
