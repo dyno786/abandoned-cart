@@ -6,6 +6,20 @@ export default async function handler(req, res) {
 
   const store = req.headers['x-shopify-store'];
   const token = req.headers['x-shopify-token'];
+
+  // Image proxy - no auth needed, just proxy the CDN image
+  if (req.query.imgurl) {
+    try {
+      const r = await fetch(decodeURIComponent(req.query.imgurl));
+      const buf = await r.arrayBuffer();
+      res.setHeader('Content-Type', r.headers.get('content-type') || 'image/jpeg');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      return res.send(Buffer.from(buf));
+    } catch(e) {
+      return res.status(404).end();
+    }
+  }
+
   if (!store || !token) return res.status(400).json({ error: 'Missing headers' });
 
   const headers = {
@@ -13,7 +27,6 @@ export default async function handler(req, res) {
     'Content-Type': 'application/json',
   };
 
-  // GraphQL endpoint
   if (req.query.graphql === '1') {
     const body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
     try {
@@ -26,7 +39,6 @@ export default async function handler(req, res) {
     }
   }
 
-  // REST endpoint
   const path = req.query.path || '';
   try {
     const r = await fetch(`https://${store}/admin/api/2024-01/${path}`, { headers });
