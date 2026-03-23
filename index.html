@@ -540,6 +540,196 @@
   }
   .btn-email:hover { background: rgba(59,130,246,0.18); }
 
+  /* Sourcing list styles */
+  .sourcing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+    margin-top: 0;
+  }
+
+  .sourcing-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--rad-lg);
+    overflow: hidden;
+    transition: opacity 0.3s, border-color 0.3s;
+    position: relative;
+  }
+
+  .sourcing-card.sourced {
+    opacity: 0.4;
+    border-color: rgba(37,211,102,0.3);
+  }
+
+  .sourcing-card.sourced::after {
+    content: 'SOURCED';
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(37,211,102,0.9);
+    color: #0a1f0e;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+  }
+
+  .sourcing-img {
+    width: 100%;
+    height: 160px;
+    object-fit: contain;
+    background: var(--surface2);
+    padding: 12px;
+  }
+
+  .sourcing-img-placeholder {
+    width: 100%;
+    height: 160px;
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .sourcing-body {
+    padding: 14px;
+  }
+
+  .sourcing-title {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+
+  .sourcing-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+
+  .sourcing-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .sourcing-meta-row strong {
+    color: var(--text);
+    font-weight: 500;
+    min-width: 60px;
+  }
+
+  .sourcing-status-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    letter-spacing: 0.3px;
+  }
+
+  .sourcing-status-discontinued {
+    background: rgba(239,68,68,0.1);
+    color: #f87171;
+    border: 1px solid rgba(239,68,68,0.2);
+  }
+
+  .sourcing-status-out {
+    background: rgba(245,158,11,0.1);
+    color: #f59e0b;
+    border: 1px solid rgba(245,158,11,0.2);
+  }
+
+  .sourcing-footer {
+    display: flex;
+    gap: 8px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  .btn-sourced {
+    flex: 1;
+    background: rgba(37,211,102,0.1);
+    color: #25d366;
+    border: 1px solid rgba(37,211,102,0.2);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .btn-sourced:hover { background: rgba(37,211,102,0.2); }
+
+  .btn-unsource {
+    background: var(--surface);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 12px;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .btn-unsource:hover { background: var(--surface2); color: var(--danger); }
+
+  .sourcing-customer-count {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .sourcing-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .sourcing-counts {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .sourcing-counts span { color: var(--text); font-weight: 500; }
+
+  .btn-export-pdf {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    border-radius: var(--rad);
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+
+  .btn-export-pdf:hover { border-color: var(--accent); color: var(--accent); }
+
   .stock-pill {
     display: inline-flex;
     align-items: center;
@@ -818,6 +1008,7 @@
     <div class="header-center">
       <button class="tab-btn active" id="tab-abandoned" onclick="switchTab('abandoned')">Abandoned Carts</button>
       <button class="tab-btn" id="tab-reorder" onclick="switchTab('reorder')">Re-order Campaign</button>
+      <button class="tab-btn" id="tab-sourcing" onclick="switchTab('sourcing')">Sourcing List <span id="sourcing-badge" style="display:none;background:rgba(239,68,68,0.15);color:#f87171;border-radius:10px;padding:1px 7px;font-size:11px;margin-left:4px;">0</span></button>
     </div>
     <div class="header-right">
       <span class="store-badge" id="store-badge">store.myshopify.com</span>
@@ -935,6 +1126,35 @@
 </div>
 
 </div><!-- end panel-abandoned -->
+
+<!-- Sourcing List Panel -->
+<div id="panel-sourcing" class="main" style="display:none;">
+
+  <div class="sourcing-toolbar">
+    <div class="sourcing-counts">
+      <div>Need sourcing: <span id="src-need-count">0</span></div>
+      <div>Sourced: <span id="src-done-count">0</span></div>
+      <div>Customers affected: <span id="src-cust-count">0</span></div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn-refresh" onclick="renderSourcingList()" style="padding:8px 14px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Refresh
+      </button>
+      <button class="btn-export-pdf" onclick="exportSourcingPDF()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Export PDF
+      </button>
+    </div>
+  </div>
+
+  <div id="sourcing-empty" class="empty-state">
+    Run the Re-order Campaign first to check stock — discontinued and out-of-stock products will appear here automatically.
+  </div>
+
+  <div class="sourcing-grid" id="sourcing-grid"></div>
+
+</div>
 
 <!-- Re-order Campaign Panel -->
 <div id="panel-reorder" class="main" style="display:none;">
@@ -1402,6 +1622,231 @@ function showToast(msg, color = '#25d366') {
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
+// ── Sourcing List ──────────────────────────────────────────
+let sourcingItems = {};   // keyed by title, value = { product info + sourced bool }
+let sourcedItems = JSON.parse(localStorage.getItem('sourcedItems') || '{}');
+let sourcingDetails = {}; // full product details fetched from Shopify
+
+function updateSourcingBadge() {
+  const items = Object.values(sourcingItems);
+  const needCount = items.filter(i => !sourcedItems[i.title]).length;
+  const badge = document.getElementById('sourcing-badge');
+  if (badge) {
+    badge.style.display = needCount > 0 ? 'inline' : 'none';
+    badge.textContent = needCount;
+  }
+}
+
+async function fetchProductDetails(title, productId) {
+  if (sourcingDetails[title]) return sourcingDetails[title];
+  try {
+    let product = null;
+    if (productId) {
+      const res = await fetch(`${proxyUrl}/api/shopify?path=${encodeURIComponent(`products/${productId}.json`)}`, {
+        headers: { 'x-shopify-store': storeUrl, 'x-shopify-token': apiToken }
+      });
+      if (res.ok) { const d = await res.json(); product = d.product; }
+    }
+    if (!product) {
+      const res = await fetch(`${proxyUrl}/api/shopify?path=${encodeURIComponent(`products.json?limit=3&title=${encodeURIComponent(title.substring(0,60))}`)}`, {
+        headers: { 'x-shopify-store': storeUrl, 'x-shopify-token': apiToken }
+      });
+      if (res.ok) {
+        const d = await res.json();
+        product = (d.products||[]).find(p => p.title.toLowerCase() === title.toLowerCase()) || (d.products||[])[0];
+      }
+    }
+    if (product) {
+      sourcingDetails[title] = {
+        image: product.images?.[0]?.src || '',
+        description: product.body_html ? product.body_html.replace(/<[^>]+>/g, '').substring(0, 120) + '...' : 'No description',
+        variants: (product.variants || []).map(v => ({
+          title: v.title !== 'Default Title' ? v.title : '',
+          barcode: v.barcode || '',
+          sku: v.sku || '',
+          weight: v.weight ? `${v.weight}${v.weight_unit}` : '',
+        }))
+      };
+    }
+    return sourcingDetails[title] || null;
+  } catch(e) { return null; }
+}
+
+async function renderSourcingList() {
+  // Collect all discontinued/out-of-stock items from stockCache
+  const newItems = {};
+  roCustomers.forEach(c => {
+    c.items.forEach(it => {
+      const s = stockCache[it.title];
+      if (s && (s.status === 'out' || s.status === 'discontinued')) {
+        if (!newItems[it.title]) {
+          newItems[it.title] = {
+            title: it.title,
+            productId: it.productId,
+            variantId: it.variantId,
+            status: s.status,
+            customers: [],
+          };
+        }
+        if (!newItems[it.title].customers.includes(c.customer)) {
+          newItems[it.title].customers.push(c.customer);
+        }
+      }
+    });
+  });
+
+  sourcingItems = newItems;
+  updateSourcingBadge();
+
+  const grid = document.getElementById('sourcing-grid');
+  const empty = document.getElementById('sourcing-empty');
+
+  if (Object.keys(sourcingItems).length === 0) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    document.getElementById('src-need-count').textContent = '0';
+    document.getElementById('src-done-count').textContent = '0';
+    document.getElementById('src-cust-count').textContent = '0';
+    return;
+  }
+
+  empty.style.display = 'none';
+
+  const needCount = Object.values(sourcingItems).filter(i => !sourcedItems[i.title]).length;
+  const doneCount = Object.values(sourcingItems).filter(i => sourcedItems[i.title]).length;
+  const allAffected = [...new Set(Object.values(sourcingItems).flatMap(i => i.customers))];
+  document.getElementById('src-need-count').textContent = needCount;
+  document.getElementById('src-done-count').textContent = doneCount;
+  document.getElementById('src-cust-count').textContent = allAffected.length;
+
+  // Render cards with placeholder, then fetch details
+  grid.innerHTML = Object.values(sourcingItems).map(item => {
+    const isSourced = !!sourcedItems[item.title];
+    const details = sourcingDetails[item.title];
+    const statusClass = item.status === 'discontinued' ? 'sourcing-status-discontinued' : 'sourcing-status-out';
+    const statusLabel = item.status === 'discontinued' ? 'Discontinued' : 'Out of Stock';
+
+    const imgHtml = details?.image
+      ? `<img src="${details.image}" class="sourcing-img" alt="${esc(item.title)}" onerror="this.style.display='none'">`
+      : `<div class="sourcing-img-placeholder"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`;
+
+    const variantInfo = details?.variants?.[0];
+    const barcode = variantInfo?.barcode || variantInfo?.sku || '—';
+    const size = variantInfo?.title || variantInfo?.weight || '—';
+    const description = details?.description || 'Loading details...';
+
+    return `<div class="sourcing-card ${isSourced ? 'sourced' : ''}" id="src-card-${btoa(item.title).substring(0,16)}">
+      ${imgHtml}
+      <div class="sourcing-body">
+        <span class="sourcing-status-badge ${statusClass}">${statusLabel}</span>
+        <div class="sourcing-title">${esc(item.title)}</div>
+        <div class="sourcing-customer-count">${item.customers.length} customer${item.customers.length !== 1 ? 's' : ''} affected</div>
+        <div class="sourcing-meta">
+          <div class="sourcing-meta-row"><strong>Size/Var</strong>${esc(size)}</div>
+          <div class="sourcing-meta-row"><strong>Barcode</strong><span style="font-family:var(--mono);font-size:11px">${esc(barcode)}</span></div>
+          <div class="sourcing-meta-row" style="align-items:flex-start"><strong>Info</strong><span style="line-height:1.5">${esc(description)}</span></div>
+        </div>
+      </div>
+      <div class="sourcing-footer">
+        ${isSourced
+          ? `<button class="btn-unsource" onclick="unsourceItem('${esc(item.title).replace(/'/g,"\\'")}')">Undo sourced</button>
+             <span style="font-size:12px;color:var(--accent);align-self:center;margin-left:4px">Got it!</span>`
+          : `<button class="btn-sourced" onclick="markSourced('${esc(item.title).replace(/'/g,"\\'")}')">Mark as sourced</button>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+
+  // Fetch product details asynchronously for any missing
+  Object.values(sourcingItems).forEach(async (item) => {
+    if (!sourcingDetails[item.title]) {
+      await fetchProductDetails(item.title, item.productId);
+      renderSourcingList();
+    }
+  });
+}
+
+function markSourced(title) {
+  sourcedItems[title] = true;
+  localStorage.setItem('sourcedItems', JSON.stringify(sourcedItems));
+  updateSourcingBadge();
+  renderSourcingList();
+  showToast(`Marked as sourced!`, '#25d366');
+}
+
+function unsourceItem(title) {
+  delete sourcedItems[title];
+  localStorage.setItem('sourcedItems', JSON.stringify(sourcedItems));
+  updateSourcingBadge();
+  renderSourcingList();
+}
+
+function exportSourcingPDF() {
+  const items = Object.values(sourcingItems);
+  if (items.length === 0) { showToast('No items to export', '#f59e0b'); return; }
+
+  const date = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+
+  let html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Sourcing List - CC Hair & Beauty</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; color: #1a1a1a; }
+    h1 { font-size: 22px; border-bottom: 2px solid #25d366; padding-bottom: 10px; margin-bottom: 6px; }
+    .meta { font-size: 13px; color: #666; margin-bottom: 24px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card { border: 1px solid #ddd; border-radius: 8px; overflow: hidden; page-break-inside: avoid; }
+    .card.sourced { opacity: 0.4; }
+    .card img { width: 100%; height: 140px; object-fit: contain; background: #f5f5f5; padding: 8px; box-sizing: border-box; }
+    .card-body { padding: 12px; }
+    .card-title { font-size: 13px; font-weight: bold; margin-bottom: 8px; line-height: 1.4; }
+    .badge { display: inline-block; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 4px; margin-bottom: 8px; }
+    .discontinued { background: #fef2f2; color: #ef4444; }
+    .out { background: #fffbeb; color: #f59e0b; }
+    .sourced-badge { background: #f0fdf4; color: #16a34a; }
+    table { width: 100%; font-size: 12px; border-collapse: collapse; }
+    td { padding: 4px 0; vertical-align: top; }
+    td:first-child { color: #666; width: 70px; }
+    .customers { font-size: 11px; color: #888; margin-top: 6px; }
+    @media print { body { padding: 10px; } }
+  </style></head><body>
+  <h1>Sourcing List — CC Hair & Beauty</h1>
+  <div class="meta">Generated ${date} &nbsp;|&nbsp; ${items.filter(i=>!sourcedItems[i.title]).length} items need sourcing &nbsp;|&nbsp; ${items.filter(i=>sourcedItems[i.title]).length} sourced</div>
+  <div class="grid">`;
+
+  items.forEach(item => {
+    const isSourced = !!sourcedItems[item.title];
+    const details = sourcingDetails[item.title];
+    const statusLabel = item.status === 'discontinued' ? 'Discontinued' : 'Out of Stock';
+    const statusClass = item.status === 'discontinued' ? 'discontinued' : 'out';
+    const variant = details?.variants?.[0];
+    const barcode = variant?.barcode || variant?.sku || '—';
+    const size = variant?.title || variant?.weight || '—';
+    const description = details?.description || '';
+
+    html += `<div class="card ${isSourced ? 'sourced' : ''}">
+      ${details?.image ? `<img src="${details.image}" alt="${esc(item.title)}">` : '<div style="height:140px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:12px">No image</div>'}
+      <div class="card-body">
+        <span class="badge ${statusClass}">${statusLabel}</span>
+        ${isSourced ? '<span class="badge sourced-badge" style="margin-left:6px">Sourced</span>' : ''}
+        <div class="card-title">${esc(item.title)}</div>
+        <table>
+          <tr><td>Size</td><td>${esc(size)}</td></tr>
+          <tr><td>Barcode</td><td><strong>${esc(barcode)}</strong></td></tr>
+          ${description ? `<tr><td>Info</td><td>${esc(description.substring(0,100))}</td></tr>` : ''}
+        </table>
+        <div class="customers">${item.customers.length} customer${item.customers.length !== 1 ? 's' : ''} affected: ${item.customers.slice(0,3).join(', ')}${item.customers.length > 3 ? ` +${item.customers.length - 3} more` : ''}</div>
+      </div>
+    </div>`;
+  });
+
+  html += `</div></body></html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  setTimeout(() => win.print(), 500);
+}
+
 // Gmail OAuth
 let gmailToken = null, gmailAddr = '', gmailConnected = false;
 const GMAIL_CLIENT_ID = ''; // Set via prompt
@@ -1613,13 +2058,18 @@ async function checkStockForCustomers(customers) {
   const inCount = Object.values(stockCache).filter(s => s.status === 'in' || s.status === 'low').length;
   addLog(`Stock check complete: ${inCount} in stock, ${outCount} out/discontinued`, 'info');
   renderReorderTable();
+  // Auto-populate sourcing list badge
+  updateSourcingBadge && updateSourcingBadge();
 }
 
 function switchTab(tab) {
   document.getElementById('panel-abandoned').style.display = tab === 'abandoned' ? 'block' : 'none';
   document.getElementById('panel-reorder').style.display = tab === 'reorder' ? 'block' : 'none';
+  document.getElementById('panel-sourcing').style.display = tab === 'sourcing' ? 'block' : 'none';
   document.getElementById('tab-abandoned').classList.toggle('active', tab === 'abandoned');
   document.getElementById('tab-reorder').classList.toggle('active', tab === 'reorder');
+  document.getElementById('tab-sourcing').classList.toggle('active', tab === 'sourcing');
+  if (tab === 'sourcing') renderSourcingList();
 }
 
 async function fetchReorderCustomers() {
