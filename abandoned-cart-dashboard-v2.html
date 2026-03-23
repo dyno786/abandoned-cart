@@ -1726,9 +1726,16 @@ async function renderSourcingList() {
     const statusClass = item.status === 'discontinued' ? 'sourcing-status-discontinued' : 'sourcing-status-out';
     const statusLabel = item.status === 'discontinued' ? 'Discontinued' : 'Out of Stock';
 
-    const imgHtml = details?.image
-      ? `<img src="${details.image}" class="sourcing-img" alt="${esc(item.title)}" onerror="this.style.display='none'">`
-      : `<div class="sourcing-img-placeholder"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`;
+    const imgSrc = details?.image
+      ? `${proxyUrl}/api/shopify?imgurl=${encodeURIComponent(details.image)}`
+      : '';
+    const imgHtml = imgSrc
+      ? `<img src="${imgSrc}" class="sourcing-img" alt="${esc(item.title)}"
+           onerror="this.outerHTML='<div class=\'sourcing-img-placeholder\'><svg width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" opacity=\"0.3\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><polyline points=\"21 15 16 10 5 21\"/></svg><span style=\"font-size:11px;color:#8a8f9a\">No image</span></div>'">`
+      : `<div class="sourcing-img-placeholder">
+           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+           <span style="font-size:11px;color:#8a8f9a;">No image</span>
+         </div>`;
 
     const variantInfo = details?.variants?.[0];
     const barcode = variantInfo?.barcode || variantInfo?.sku || '—';
@@ -1739,11 +1746,18 @@ async function renderSourcingList() {
       ${imgHtml}
       <div class="sourcing-body">
         <span class="sourcing-status-badge ${statusClass}">${statusLabel}</span>
-        <div class="sourcing-title">${esc(item.title)}</div>
+        <div class="sourcing-title" style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+          <span>${esc(item.title)}</span>
+          <button onclick="copyText('${esc(item.title).replace(/'/g,"\\'")}', this)" style="background:none;border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:10px;color:var(--muted);cursor:pointer;flex-shrink:0;font-family:var(--font);margin-top:1px">Copy</button>
+        </div>
         <div class="sourcing-customer-count">${item.customers.length} customer${item.customers.length !== 1 ? 's' : ''} affected</div>
         <div class="sourcing-meta">
           <div class="sourcing-meta-row"><strong>Size/Var</strong>${esc(size)}</div>
-          <div class="sourcing-meta-row"><strong>Barcode</strong><span style="font-family:var(--mono);font-size:11px">${esc(barcode)}</span></div>
+          <div class="sourcing-meta-row">
+            <strong>Barcode</strong>
+            <span style="font-family:var(--mono);font-size:11px">${esc(barcode)}</span>
+            ${barcode !== '—' ? `<button onclick="copyText('${barcode.replace(/'/g,"\\'")}', this)" style="background:none;border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:10px;color:var(--muted);cursor:pointer;margin-left:4px;font-family:var(--font)">Copy</button>` : ''}
+          </div>
           <div class="sourcing-meta-row" style="align-items:flex-start"><strong>Info</strong><span style="line-height:1.5">${esc(description)}</span></div>
         </div>
       </div>
@@ -1960,6 +1974,30 @@ async function sendEmailRecovery(cartId) {
   window.open(gmailLink, '_blank');
   markSent(cartId);
   addLog(`Opened Gmail compose for ${cart.email}`, 'info');
+}
+
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    btn.style.color = '#25d366';
+    btn.style.borderColor = 'rgba(37,211,102,0.4)';
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.style.color = '';
+      btn.style.borderColor = '';
+    }, 1500);
+  }).catch(() => {
+    // fallback
+    const el = document.createElement('textarea');
+    el.value = text;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 1500);
+  });
 }
 
 function esc(s) {
