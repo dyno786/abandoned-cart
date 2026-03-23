@@ -1771,13 +1771,16 @@ async function renderSourcingList() {
     </div>`;
   }).join('');
 
-  // Fetch product details asynchronously for any missing
-  Object.values(sourcingItems).forEach(async (item) => {
-    if (!sourcingDetails[item.title]) {
-      await fetchProductDetails(item.title, item.productId);
+  // Fetch product details sequentially to avoid memory issues
+  const missing = Object.values(sourcingItems).filter(i => !sourcingDetails[i.title]);
+  if (missing.length > 0) {
+    (async () => {
+      for (const item of missing.slice(0, 20)) { // cap at 20
+        await fetchProductDetails(item.title, item.productId);
+      }
       renderSourcingList();
-    }
-  });
+    })();
+  }
 }
 
 function markSourced(title) {
@@ -2311,6 +2314,16 @@ function sendAllReorder() {
   });
   showToast(`Opened ${unsent.length} WhatsApp message${unsent.length > 1 ? 's' : ''}`, '#25d366');
 }
+
+// Set re-order dropdowns to last month by default
+(function() {
+  const now = new Date();
+  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const mo = document.getElementById('ro-month');
+  const yr = document.getElementById('ro-year');
+  if (mo) mo.value = lastMonth.getMonth() + 1;
+  if (yr) yr.value = lastMonth.getFullYear();
+})();
 
 // Check for Gmail OAuth callback on page load
 checkGmailCallback();
